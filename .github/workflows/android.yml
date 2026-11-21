@@ -1,0 +1,94 @@
+name: Build APK and publish release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Build number = workflow run number. The in-app updater compares it with the installed versionCode.
+      VERSION_CODE: ${{ github.run_number }}
+      VERSION_NAME: 1.0.${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Bundle the game
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # The runner image already ships the Android SDK; just make sure its licenses are accepted so Gradle
+      # can download the platform it needs.
+      - name: Accept Android SDK licenses
+        run: yes | "$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | head -n 1)" --licenses > /dev/null || true
+
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Android only installs an update that is signed with the same key as the installed app, so every
+      # release must use the same key. By default that is the key committed in android/keystore. To use a
+      # private key instead, add the repository secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD
+      # and ANDROID_KEY_ALIAS (see README.md, "Signing key"). Do not switch after the first install.
+      - name: Load signing key
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KS_KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "BARRELSTORM_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "BARRELSTORM_KEYSTORE_PASSWORD=$KS_PASS" >> "$GITHUB_ENV"
+            echo "BARRELSTORM_KEY_ALIAS=$KS_ALIAS" >> "$GITHUB_ENV"
+            echo "BARRELSTORM_KEY_PASSWORD=${KS_KEY_PASS:-$KS_PASS}" >> "$GITHUB_ENV"
+            echo "Signing with the key from repository secrets"
+          else
+            echo "Signing with the key committed in android/keystore"
+          fi
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleRelease -PversionCode="$VERSION_CODE" -PversionName="$VERSION_NAME"
+
+      - name: Name the APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk "barrelstorm-v${VERSION_NAME}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: barrelstorm-apk
+          path: barrelstorm-v*.apk
+
+      - name: Publish GitHub release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git log -1 --pretty=%B > "$RUNNER_TEMP/notes.txt"
+          gh release create "v${VERSION_NAME}" "barrelstorm-v${VERSION_NAME}.apk" \
+            --target "$GITHUB_SHA" \
+            --title "Barrelstorm ${VERSION_NAME}" \
+            --notes-file "$RUNNER_TEMP/notes.txt" \
+            --latest

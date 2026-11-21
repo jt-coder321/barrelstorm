@@ -1,0 +1,54 @@
+plugins {
+    id 'com.android.application'
+}
+
+// CI passes -PversionCode=<run number> -PversionName=1.0.<run number>.
+// The in-app updater compares the number after the last dot of the release tag with versionCode.
+def appVersionCode = (project.findProperty('versionCode') ?: '1').toString().toInteger()
+def appVersionName = (project.findProperty('versionName') ?: '1.0.0-dev').toString()
+
+android {
+    namespace 'com.jtcoder.barrelstorm'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.jtcoder.barrelstorm'
+        minSdk 26
+        targetSdk 35
+        versionCode appVersionCode
+        versionName appVersionName
+    }
+
+    // Every release must be signed with the same key, otherwise Android refuses to install it over the
+    // previous version. By default the key committed in android/keystore is used (this is a personal game
+    // and the key is deliberately public). Set the BARRELSTORM_* environment variables, as the CI workflow
+    // does when the ANDROID_KEYSTORE_* repository secrets exist, to use a private key instead.
+    // Switching keys later means everyone has to uninstall and reinstall once.
+    signingConfigs {
+        release {
+            storeFile file(System.getenv('BARRELSTORM_KEYSTORE') ?: "${rootDir}/keystore/barrelstorm.jks")
+            storePassword System.getenv('BARRELSTORM_KEYSTORE_PASSWORD') ?: 'barrelstorm'
+            keyAlias System.getenv('BARRELSTORM_KEY_ALIAS') ?: 'barrelstorm'
+            keyPassword System.getenv('BARRELSTORM_KEY_PASSWORD') ?: 'barrelstorm'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+    }
+}
