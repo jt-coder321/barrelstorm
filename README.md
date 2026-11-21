@@ -1,13 +1,21 @@
-# Barrelstorm
+# Cannonforge
 
-A 3D medieval barrel shooter for Android. Drag to move your siege cart, your weapon fires automatically,
-shoot the numbered barrels before they reach your castle, drive through gates to power up, and evolve your
-weapon from a humble sling to the Dragon Cannon.
+A 3D medieval siege shooter for Android. Your cannon cart fires automatically, you drag to steer. Every
+stage is generated from a different mix of realm, modifiers, formations and surprises, so no two stages
+play alike.
 
-- **Gameplay:** auto fire, drag to steer, numbered barrels, powder kegs that chain explode, gift barrels,
-  spike logs to dodge, boss every 5th stage, combo coin multipliers, 6 weapon tiers.
-- **Progress:** coins and Forge upgrades (damage, fire rate, projectiles, hearts, coin bonus, starting
-  weapon level) are saved on the device.
+- **Stages:** a procedural generator combines 8 realms, 18 modifiers, 16 formations, 6 pacing structures and
+  3 objective types. Consecutive stages never share a mix (checked by `npm test`). Replays reroll the layout.
+- **Decisions:** pick 1 of 3 cards at anvils and chests (reroll, rarity from common to mythic), choose
+  safe or risky roads, trade a heart at a blood altar, pick a blessing before each boss.
+- **Weapons:** 8 families (Cannon, Gatling, Crossbow, Flame, Lightning, Mortar, Frost, Rocket) with 4 forms
+  each, tags from cards and 7 synergies (Napalm, Chain Barrage, Cryoblast, Skewer, Wildfire, Hunter Swarm,
+  Shatter Lance). Weapons unlock through blueprints, and gain mastery.
+- **Bosses:** Barrel King, Iron Golem, War Machine, Siege Engine, Dragon. Each has weak points or shields,
+  phases, telegraphed attacks and vulnerable windows. Mini-bosses ambush mid-stage.
+- **Modes:** Campaign (3 difficulties, stars, ranks), Daily Challenge (same seed for everyone), Endless.
+- **Progress:** Forge upgrades, abilities, relics, achievements, mastery, all saved on the device. Saves from
+  earlier versions are migrated.
 - **Settings > Updates:** checks the latest GitHub Release, downloads the APK and opens the Android
   installer, so you never have to send APKs around by hand.
 
@@ -40,8 +48,11 @@ install means uninstalling and reinstalling the game once, so decide before you 
 
 ```bash
 npm install
-npm run dev        # game in a desktop browser at http://localhost:8080 (arrow keys or drag to move)
+npm run dev        # game in a desktop browser at http://localhost:8080 (arrows or drag to move, space = ability)
 npm run build      # bundles the game into android/app/src/main/assets/game
+npm test           # generator checks: no repeated stage mixes, legal modifier combos, fair layouts
+npm run test:bot -- --stages 1-20   # headless bot plays stages (needs Playwright + Chromium installed)
+npm run shots      # screenshots of bosses, realms and screens into test-shots/
 cd android && ./gradlew assembleDebug   # needs JDK 17 and the Android SDK
 ```
 
@@ -50,5 +61,7 @@ Android app.
 
 ## Layout
 
-- `web/` the game (Three.js, plain JavaScript): `src/config.js` has weapon tiers, Forge items and stage generation.
+- `web/src/data/` content tables: weapons, cards and synergies, enemies, modifiers, formations, realms, meta progression.
+- `web/src/levelgen.js` the stage generator (profiles, pacing beats, events, endless and daily).
+- `web/src/game.js` the game loop and damage pipeline; `bosses.js`, `hazards.js` and `gfx.js` for bosses, hazards and models.
 - `android/` a thin native wrapper: full-screen WebView, save storage and the update installer (`UpdateManager.java`).
