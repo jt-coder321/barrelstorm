@@ -14,7 +14,7 @@ weapon from a humble sling to the Dragon Cannon.
 ## How updates work
 
 1. Every push to `main` runs [`.github/workflows/android.yml`](.github/workflows/android.yml). It bundles the
-   game, builds a release APK signed with your key and publishes a GitHub Release tagged `v1.0.<run number>` with the APK
+   game, builds a signed release APK and publishes a GitHub Release tagged `v1.0.<run number>` with the APK
    attached (`barrelstorm-v1.0.<run number>.apk`).
 2. In the game, **Settings > Updates > Check for updates** asks the GitHub API for the latest release and
    compares its build number with the installed `versionCode`. If it is newer, **Download and install**
@@ -26,18 +26,15 @@ weapon from a humble sling to the Dragon Cannon.
 
 ## Signing key
 
-Android only installs an update if it is signed with the **same key** as the installed app, so all releases
-must use one private key. It is kept out of the repository (which is public) in GitHub repository secrets.
-Set it up once:
+Android only installs an update if it is signed with the **same key** as the installed app, so every release
+uses one key. This is a personal game, so the key is committed in `android/keystore/barrelstorm.jks`
+(password `barrelstorm`) and works with no setup. Because the repository is public, anyone can read that key;
+do not reuse it for anything you publish.
 
-```bash
-./scripts/make-signing-key.sh        # needs a JDK; with the GitHub CLI logged in it stores the secrets for you
-```
-
-Otherwise add `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_ALIAS` under
-Settings > Secrets and variables > Actions. Back the `.jks` file up: if it is lost, installed copies can no
-longer be updated and the game has to be uninstalled and reinstalled. The release job refuses to publish
-without the key, because an APK signed with a throwaway key would fail to install over the old one.
+To use a private key instead, run `./scripts/make-signing-key.sh` (needs a JDK; with the GitHub CLI logged in it
+stores the secrets for you) or add `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` and
+`ANDROID_KEY_ALIAS` as repository secrets. The workflow uses them automatically. Switching keys after the first
+install means uninstalling and reinstalling the game once, so decide before you start playing.
 
 ## Develop
 

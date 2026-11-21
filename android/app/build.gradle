@@ -19,31 +19,27 @@ android {
         versionName appVersionName
     }
 
-    // Every release must be signed with the same private key, otherwise Android refuses to install it
-    // over the previous version. CI provides the key through the BARRELSTORM_* environment variables
-    // (see .github/workflows/android.yml and README.md). Without a key the build falls back to the
-    // automatically generated debug key, which is fine for trying things out but cannot update a release.
-    def keystorePath = System.getenv('BARRELSTORM_KEYSTORE')
-    def haveReleaseKey = keystorePath != null && file(keystorePath).exists()
-
+    // Every release must be signed with the same key, otherwise Android refuses to install it over the
+    // previous version. By default the key committed in android/keystore is used (this is a personal game
+    // and the key is deliberately public). Set the BARRELSTORM_* environment variables, as the CI workflow
+    // does when the ANDROID_KEYSTORE_* repository secrets exist, to use a private key instead.
+    // Switching keys later means everyone has to uninstall and reinstall once.
     signingConfigs {
-        if (haveReleaseKey) {
-            release {
-                storeFile file(keystorePath)
-                storePassword System.getenv('BARRELSTORM_KEYSTORE_PASSWORD')
-                keyAlias System.getenv('BARRELSTORM_KEY_ALIAS')
-                keyPassword System.getenv('BARRELSTORM_KEY_PASSWORD')
-            }
+        release {
+            storeFile file(System.getenv('BARRELSTORM_KEYSTORE') ?: "${rootDir}/keystore/barrelstorm.jks")
+            storePassword System.getenv('BARRELSTORM_KEYSTORE_PASSWORD') ?: 'barrelstorm'
+            keyAlias System.getenv('BARRELSTORM_KEY_ALIAS') ?: 'barrelstorm'
+            keyPassword System.getenv('BARRELSTORM_KEY_PASSWORD') ?: 'barrelstorm'
         }
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig haveReleaseKey ? signingConfigs.release : signingConfigs.debug
+            signingConfig signingConfigs.release
         }
         debug {
-            signingConfig haveReleaseKey ? signingConfigs.release : signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
 

@@ -48,15 +48,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       # Android only installs an update that is signed with the same key as the installed app, so every
-      # release must use the same private key. It lives in repository secrets (see README.md, "Signing key"):
-      # ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
+      # release must use the same key. By default that is the key committed in android/keystore. To use a
+      # private key instead, add the repository secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD
+      # and ANDROID_KEY_ALIAS (see README.md, "Signing key"). Do not switch after the first install.
       - name: Load signing key
         env:
           KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KS_KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          IS_RELEASE: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
         run: |
           if [ -n "$KS_B64" ]; then
             echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
@@ -65,11 +65,8 @@ jobs:
             echo "BARRELSTORM_KEY_ALIAS=$KS_ALIAS" >> "$GITHUB_ENV"
             echo "BARRELSTORM_KEY_PASSWORD=${KS_KEY_PASS:-$KS_PASS}" >> "$GITHUB_ENV"
             echo "Signing with the key from repository secrets"
-          elif [ "$IS_RELEASE" = "true" ]; then
-            echo "::error::No signing key. Add the ANDROID_KEYSTORE_* repository secrets (see README.md, Signing key). Publishing an APK signed with a throwaway key would break updates."
-            exit 1
           else
-            echo "::warning::No signing key secrets found. This test build uses a throwaway debug key and is not published."
+            echo "Signing with the key committed in android/keystore"
           fi
 
       - name: Build release APK
