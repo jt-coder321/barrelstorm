@@ -6,7 +6,10 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "dev": "node scripts/build.mjs --serve"
+    "dev": "node scripts/build.mjs --serve",
+    "test": "node scripts/level-test.mjs",
+    "test:bot": "node scripts/bot-test.mjs",
+    "shots": "node scripts/shots.mjs"
   },
   "dependencies": {
     "three": "0.180.0"

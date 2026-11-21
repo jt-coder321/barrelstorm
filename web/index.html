@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-  <title>Barrelstorm</title>
+  <title>Cannonforge</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,53 +12,120 @@
   <!-- In-game HUD -->
   <div id="hud" class="hidden">
     <div class="hud-top">
-      <div class="hud-level"><span id="hud-level">Level 1</span></div>
+      <div class="hud-level"><span id="hud-level">Stage 1</span></div>
       <div class="hud-progress"><div id="hud-progress-fill"></div><div id="hud-boss-mark">&#9813;</div></div>
       <div class="hud-coins"><span class="coin-icon"></span><span id="hud-coins">0</span></div>
       <button id="btn-pause" class="icon-btn" aria-label="Pause">&#10074;&#10074;</button>
     </div>
-    <div id="hud-hearts"></div>
-    <div id="hud-combo" class="hidden"></div>
+    <div class="hud-row2">
+      <div id="hud-hearts"></div>
+      <div class="hud-score">&#9733; <span id="hud-score">0</span></div>
+    </div>
+    <div id="hud-mods"></div>
+    <div id="hud-objective"></div>
+    <div id="hud-temps"></div>
+    <div id="hud-combo" class="hidden">
+      <div class="combo-n"><span id="hud-combo-n">0</span><small>COMBO</small></div>
+      <div class="combo-x" id="hud-combo-x">x1</div>
+      <div class="combo-bar"><div id="hud-combo-fill"></div></div>
+    </div>
     <div id="hud-boss" class="hidden">
-      <div class="boss-name">IRONBOUND KEG</div>
+      <div class="boss-name" id="hud-boss-name">BOSS</div>
       <div class="boss-bar"><div id="hud-boss-fill"></div></div>
+      <div class="boss-tip" id="hud-boss-tip"></div>
     </div>
     <div class="hud-bottom">
       <div class="weapon-card">
-        <div class="weapon-name"><span id="hud-weapon">Sling</span> <span class="weapon-lv">Lv <span id="hud-wlv">1</span></span></div>
+        <div class="weapon-name"><span id="hud-wicon"></span> <span id="hud-weapon">Bombard</span> <span class="weapon-lv">Lv <span id="hud-wlv">1</span></span></div>
         <div class="weapon-xp"><div id="hud-wxp"></div></div>
         <div class="weapon-stats">
           <div><b id="hud-dmg">2</b><small>DMG</small></div>
           <div><b id="hud-rate">3.0</b><small>SHOTS/S</small></div>
-          <div><b id="hud-bolts">1</b><small>BOLTS</small></div>
+          <div><b id="hud-bolts">1</b><small>SHOTS</small></div>
         </div>
+        <div class="weapon-tags" id="hud-tags"></div>
       </div>
+      <button id="hud-ability" class="ability-btn" aria-label="Use ability">
+        <div id="hud-ability-fill"></div><span id="hud-ability-icon">&#128163;</span>
+      </button>
     </div>
     <div class="drag-hint" id="drag-hint">Drag to move</div>
   </div>
 
+  <div id="edge"></div>
   <div id="flash"></div>
   <div id="popups"></div>
   <div id="banner" class="hidden"><div id="banner-title"></div><div id="banner-sub"></div></div>
+
+  <!-- Draft (pick one card) -->
+  <div id="screen-draft" class="screen hidden dim">
+    <div class="draft-title" id="draft-title">CHOOSE AN UPGRADE</div>
+    <div class="draft-sub" id="draft-sub"></div>
+    <div id="draft-cards"></div>
+    <div class="draft-actions">
+      <button class="btn small-btn hidden" id="draft-reroll">&#127922; Reroll</button>
+      <button class="btn small-btn hidden" id="draft-skip">Walk away</button>
+    </div>
+  </div>
 
   <!-- Main menu -->
   <div id="screen-menu" class="screen">
     <div class="menu-coins"><span class="coin-icon"></span><span id="menu-coins">0</span></div>
     <div class="title-block">
-      <div class="title">BARREL<span>STORM</span></div>
-      <div class="subtitle">Siege of the Thousand Kegs</div>
+      <div class="title">CANNON<span>FORGE</span></div>
+      <div class="subtitle">Every siege is different</div>
     </div>
-    <div class="level-select">
-      <button id="lvl-prev" class="icon-btn" aria-label="Previous level">&#9664;</button>
-      <div class="level-select-label"><small>STAGE</small><b id="menu-level">1</b></div>
-      <button id="lvl-next" class="icon-btn" aria-label="Next level">&#9654;</button>
+    <div class="mode-tabs">
+      <button class="tab on" data-mode="campaign">Campaign</button>
+      <button class="tab" data-mode="daily">Daily</button>
+      <button class="tab" data-mode="endless">Endless</button>
+    </div>
+    <div class="stage-card" id="stage-card">
+      <div class="level-select" id="level-select">
+        <button id="lvl-prev" class="icon-btn" aria-label="Previous stage">&#9664;</button>
+        <div class="level-select-label"><small id="menu-level-cap">STAGE</small><b id="menu-level">1</b><div class="stars" id="menu-stars"></div></div>
+        <button id="lvl-next" class="icon-btn" aria-label="Next stage">&#9654;</button>
+      </div>
+      <div class="stage-info" id="stage-info"></div>
+      <div class="diff-row" id="diff-row"></div>
     </div>
     <button id="btn-play" class="btn btn-primary btn-big">PLAY</button>
     <div class="menu-row">
+      <button id="btn-loadout" class="btn">&#9876; Loadout</button>
       <button id="btn-forge" class="btn">&#9874; Forge</button>
+    </div>
+    <div class="menu-row">
+      <button id="btn-trophies" class="btn">&#127942; Trophies<span id="trophy-dot" class="dot hidden"></span></button>
       <button id="btn-settings" class="btn">&#9881; Settings<span id="update-dot" class="dot hidden"></span></button>
     </div>
     <div class="menu-footer" id="menu-version"></div>
+  </div>
+
+  <!-- Loadout -->
+  <div id="screen-loadout" class="screen hidden">
+    <div class="panel">
+      <div class="panel-head"><h2>Loadout</h2></div>
+      <h3>Weapon</h3>
+      <div id="loadout-weapons" class="grid3"></div>
+      <h3>Ability</h3>
+      <div id="loadout-abilities" class="grid2"></div>
+      <h3>Relic</h3>
+      <div id="loadout-relics" class="grid3"></div>
+      <button class="btn btn-primary" data-close>Back</button>
+    </div>
+  </div>
+
+  <!-- Trophies -->
+  <div id="screen-trophies" class="screen hidden">
+    <div class="panel">
+      <div class="panel-head"><h2>Trophies</h2></div>
+      <div id="trophy-stats" class="stat-grid"></div>
+      <h3>Achievements</h3>
+      <div id="trophy-list"></div>
+      <h3>Discovered</h3>
+      <div id="trophy-codex"></div>
+      <button class="btn btn-primary" data-close>Back</button>
+    </div>
   </div>
 
   <!-- Forge (permanent upgrades) -->
@@ -69,8 +136,6 @@
         <div class="menu-coins inline"><span class="coin-icon"></span><span id="forge-coins">0</span></div>
       </div>
       <div id="forge-list"></div>
-      <h3>Armory</h3>
-      <div id="armory"></div>
       <button class="btn btn-primary" data-close>Back</button>
     </div>
   </div>
@@ -118,9 +183,12 @@
     <div class="panel small result">
       <div class="result-title win">VICTORY</div>
       <div class="result-sub" id="win-sub">Stage 1 cleared</div>
+      <div class="rank-row"><div class="rank" id="win-rank">S</div><div class="stars big" id="win-stars"></div></div>
+      <div class="result-objs" id="win-objs"></div>
       <div class="result-lines" id="win-lines"></div>
       <button class="btn btn-primary btn-big" id="btn-next">Next stage</button>
       <div class="menu-row">
+        <button class="btn" id="btn-win-replay">&#8635; Replay</button>
         <button class="btn" id="btn-win-forge">&#9874; Forge</button>
         <button class="btn" id="btn-win-menu">Menu</button>
       </div>
@@ -132,13 +200,14 @@
     <div class="panel small result">
       <div class="result-title lose">DEFEAT</div>
       <div class="result-sub" id="lose-sub">The kegs broke through</div>
+      <div class="rank-row hidden" id="lose-rank-row"><div class="rank" id="lose-rank">C</div></div>
       <div class="result-lines" id="lose-lines"></div>
       <button class="btn btn-primary btn-big" id="btn-retry">Retry</button>
       <div class="menu-row">
         <button class="btn" id="btn-lose-forge">&#9874; Forge</button>
         <button class="btn" id="btn-lose-menu">Menu</button>
       </div>
-      <div class="hint">Tip: spend coins in the Forge for permanent power.</div>
+      <div class="hint" id="lose-hint">Tip: spend coins in the Forge for permanent power.</div>
     </div>
   </div>
 
