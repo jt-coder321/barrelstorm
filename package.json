@@ -1,0 +1,17 @@
+{
+  "name": "barrelstorm",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Medieval barrel shooter for Android",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs --serve"
+  },
+  "dependencies": {
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10"
+  }
+}

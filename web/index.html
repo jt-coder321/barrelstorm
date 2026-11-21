@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <title>Barrelstorm</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- In-game HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-level"><span id="hud-level">Level 1</span></div>
+      <div class="hud-progress"><div id="hud-progress-fill"></div><div id="hud-boss-mark">&#9813;</div></div>
+      <div class="hud-coins"><span class="coin-icon"></span><span id="hud-coins">0</span></div>
+      <button id="btn-pause" class="icon-btn" aria-label="Pause">&#10074;&#10074;</button>
+    </div>
+    <div id="hud-hearts"></div>
+    <div id="hud-combo" class="hidden"></div>
+    <div id="hud-boss" class="hidden">
+      <div class="boss-name">IRONBOUND KEG</div>
+      <div class="boss-bar"><div id="hud-boss-fill"></div></div>
+    </div>
+    <div class="hud-bottom">
+      <div class="weapon-card">
+        <div class="weapon-name"><span id="hud-weapon">Sling</span> <span class="weapon-lv">Lv <span id="hud-wlv">1</span></span></div>
+        <div class="weapon-xp"><div id="hud-wxp"></div></div>
+        <div class="weapon-stats">
+          <div><b id="hud-dmg">2</b><small>DMG</small></div>
+          <div><b id="hud-rate">3.0</b><small>SHOTS/S</small></div>
+          <div><b id="hud-bolts">1</b><small>BOLTS</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="drag-hint" id="drag-hint">Drag to move</div>
+  </div>
+
+  <div id="flash"></div>
+  <div id="popups"></div>
+  <div id="banner" class="hidden"><div id="banner-title"></div><div id="banner-sub"></div></div>
+
+  <!-- Main menu -->
+  <div id="screen-menu" class="screen">
+    <div class="menu-coins"><span class="coin-icon"></span><span id="menu-coins">0</span></div>
+    <div class="title-block">
+      <div class="title">BARREL<span>STORM</span></div>
+      <div class="subtitle">Siege of the Thousand Kegs</div>
+    </div>
+    <div class="level-select">
+      <button id="lvl-prev" class="icon-btn" aria-label="Previous level">&#9664;</button>
+      <div class="level-select-label"><small>STAGE</small><b id="menu-level">1</b></div>
+      <button id="lvl-next" class="icon-btn" aria-label="Next level">&#9654;</button>
+    </div>
+    <button id="btn-play" class="btn btn-primary btn-big">PLAY</button>
+    <div class="menu-row">
+      <button id="btn-forge" class="btn">&#9874; Forge</button>
+      <button id="btn-settings" class="btn">&#9881; Settings<span id="update-dot" class="dot hidden"></span></button>
+    </div>
+    <div class="menu-footer" id="menu-version"></div>
+  </div>
+
+  <!-- Forge (permanent upgrades) -->
+  <div id="screen-forge" class="screen hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>The Forge</h2>
+        <div class="menu-coins inline"><span class="coin-icon"></span><span id="forge-coins">0</span></div>
+      </div>
+      <div id="forge-list"></div>
+      <h3>Armory</h3>
+      <div id="armory"></div>
+      <button class="btn btn-primary" data-close>Back</button>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div id="screen-settings" class="screen hidden">
+    <div class="panel">
+      <div class="panel-head"><h2>Settings</h2></div>
+      <div class="setting"><span>Sound</span><button class="toggle" id="set-sound"></button></div>
+      <div class="setting"><span>Vibration</span><button class="toggle" id="set-haptics"></button></div>
+      <div class="setting"><span>High graphics</span><button class="toggle" id="set-quality"></button></div>
+
+      <h3>Updates</h3>
+      <div class="update-box">
+        <div class="update-version">Installed: <b id="upd-current">unknown</b></div>
+        <div class="update-status" id="upd-status">Updates download from the Barrelstorm releases on GitHub.</div>
+        <div class="update-progress hidden" id="upd-progress"><div id="upd-progress-fill"></div></div>
+        <div class="update-notes hidden" id="upd-notes"></div>
+        <div class="update-buttons">
+          <button class="btn" id="upd-check">Check for updates</button>
+          <button class="btn btn-primary hidden" id="upd-install">Download and install</button>
+        </div>
+        <div class="setting"><span>Check automatically on launch</span><button class="toggle" id="set-autoupdate"></button></div>
+      </div>
+
+      <h3>Progress</h3>
+      <button class="btn btn-danger" id="btn-reset">Reset all progress</button>
+      <button class="btn btn-primary" data-close>Back</button>
+    </div>
+  </div>
+
+  <!-- Pause -->
+  <div id="screen-pause" class="screen hidden dim">
+    <div class="panel small">
+      <h2>Paused</h2>
+      <button class="btn btn-primary" id="btn-resume">Resume</button>
+      <button class="btn" id="btn-restart">Restart stage</button>
+      <button class="btn" id="btn-pause-settings">Settings</button>
+      <button class="btn" id="btn-quit">Main menu</button>
+    </div>
+  </div>
+
+  <!-- Victory -->
+  <div id="screen-victory" class="screen hidden dim">
+    <div class="panel small result">
+      <div class="result-title win">VICTORY</div>
+      <div class="result-sub" id="win-sub">Stage 1 cleared</div>
+      <div class="result-lines" id="win-lines"></div>
+      <button class="btn btn-primary btn-big" id="btn-next">Next stage</button>
+      <div class="menu-row">
+        <button class="btn" id="btn-win-forge">&#9874; Forge</button>
+        <button class="btn" id="btn-win-menu">Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Defeat -->
+  <div id="screen-defeat" class="screen hidden dim">
+    <div class="panel small result">
+      <div class="result-title lose">DEFEAT</div>
+      <div class="result-sub" id="lose-sub">The kegs broke through</div>
+      <div class="result-lines" id="lose-lines"></div>
+      <button class="btn btn-primary btn-big" id="btn-retry">Retry</button>
+      <div class="menu-row">
+        <button class="btn" id="btn-lose-forge">&#9874; Forge</button>
+        <button class="btn" id="btn-lose-menu">Menu</button>
+      </div>
+      <div class="hint">Tip: spend coins in the Forge for permanent power.</div>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+  <script src="game.js"></script>
+</body>
+</html>

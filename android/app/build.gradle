@@ -1,0 +1,58 @@
+plugins {
+    id 'com.android.application'
+}
+
+// CI passes -PversionCode=<run number> -PversionName=1.0.<run number>.
+// The in-app updater compares the number after the last dot of the release tag with versionCode.
+def appVersionCode = (project.findProperty('versionCode') ?: '1').toString().toInteger()
+def appVersionName = (project.findProperty('versionName') ?: '1.0.0-dev').toString()
+
+android {
+    namespace 'com.jtcoder.barrelstorm'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.jtcoder.barrelstorm'
+        minSdk 26
+        targetSdk 35
+        versionCode appVersionCode
+        versionName appVersionName
+    }
+
+    // Every release must be signed with the same private key, otherwise Android refuses to install it
+    // over the previous version. CI provides the key through the BARRELSTORM_* environment variables
+    // (see .github/workflows/android.yml and README.md). Without a key the build falls back to the
+    // automatically generated debug key, which is fine for trying things out but cannot update a release.
+    def keystorePath = System.getenv('BARRELSTORM_KEYSTORE')
+    def haveReleaseKey = keystorePath != null && file(keystorePath).exists()
+
+    signingConfigs {
+        if (haveReleaseKey) {
+            release {
+                storeFile file(keystorePath)
+                storePassword System.getenv('BARRELSTORM_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('BARRELSTORM_KEY_ALIAS')
+                keyPassword System.getenv('BARRELSTORM_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig haveReleaseKey ? signingConfigs.release : signingConfigs.debug
+        }
+        debug {
+            signingConfig haveReleaseKey ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+    }
+}
