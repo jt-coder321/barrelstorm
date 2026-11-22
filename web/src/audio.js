@@ -87,9 +87,19 @@ export class Sfx {
         this.noise(0.25, { vol: 0.35, freq: 900, sweep: 0.25 });
         this.tone(140, 0.18, { type: 'triangle', vol: 0.25, slide: 0.5 });
         break;
-      case 'boom':
-        this.noise(0.7, { vol: 0.6, freq: 600, sweep: 0.1, q: 0.5 });
-        this.tone(80, 0.5, { type: 'sine', vol: 0.5, slide: 0.4 });
+      case 'boom': {
+        // tier: 0 small ... 16 huge. Bigger blasts are longer, deeper and louder; chains climb in pitch.
+        if (this.throttle('boom', 35)) return;
+        const k = Math.min(16, tier) / 16;
+        this.noise(0.5 + k * 0.7, { vol: 0.45 + k * 0.25, freq: 520 + tier * 25, sweep: 0.1, q: 0.5 });
+        this.tone(85 - k * 35 + Math.min(tier, 12) * 6, 0.45 + k * 0.5, { type: 'sine', vol: 0.45 + k * 0.2, slide: 0.4 });
+        if (tier >= 8) this.noise(0.25, { vol: 0.2, freq: 3000, type: 'highpass', delay: 0.05 });
+        break;
+      }
+      case 'frenzy':
+        [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(f, 0.2, { type: 'square', vol: 0.07, delay: i * 0.05 }));
+        this.tone(130, 0.6, { type: 'sawtooth', vol: 0.12, slide: 2 });
+        this.noise(0.6, { vol: 0.18, freq: 2500, type: 'bandpass', q: 0.8, sweep: 2.5 });
         break;
       case 'coin':
         if (this.throttle('coin', 60)) return;

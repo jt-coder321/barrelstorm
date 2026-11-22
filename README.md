@@ -4,15 +4,28 @@ A 3D medieval siege shooter for Android. Your cannon cart fires automatically, y
 stage is generated from a different mix of realm, modifiers, formations and surprises, so no two stages
 play alike.
 
-- **Stages:** a procedural generator combines 8 realms, 18 modifiers, 16 formations, 6 pacing structures and
-  3 objective types. Consecutive stages never share a mix (checked by `npm test`). Replays reroll the layout.
+- **Encounters (2.0):** every stage is one of 10 encounter types with its own win rule and pacing, so
+  consecutive stages play differently: Demolition (chain the kegs), Treasure Hunt (drive over gold), Survival
+  (hold out as waves escalate), Siege (protect the gate through 3 waves), Gauntlet (dodge to the end of the
+  road), Elite Hunt (crowned captains), Ambush (enemies drop in), Jackpot (45 seconds of pinatas), Challenge
+  (one special rule: Marked for Death, Untouchable, Chain Master, Powder Only) and Boss Battle. Stages 1 to 11
+  introduce them one by one. Encounters run roughly 45 to 120 seconds.
+- **Stages:** a procedural generator layers 8 realms, 18 modifiers and formations on top of the encounter type.
+  Consecutive stages never share a mix (checked by `npm test`). Replays reroll the layout.
+- **Power frenzies:** big moments (multi-kills, long chains, elites, hidden caches) drop glowing orbs. Drive into
+  one for Rapid Fire, Barrage, Lightning Storm, Explosive Overdrive, Gold Rush, Critical Frenzy, Invulnerable or
+  the rare Cataclysm.
+- **Enemies with roles:** archers shoot down their lane, healers mend their crowd, shielders guard, chargers hop
+  lanes, rams smash the gate, balloon bombers drop bombs, powder towers topple, treasure carts race past with gold.
 - **Decisions:** pick 1 of 3 cards at anvils and chests (reroll, rarity from common to mythic), choose
-  safe or risky roads, trade a heart at a blood altar, pick a blessing before each boss.
-- **Weapons:** 8 families (Cannon, Gatling, Crossbow, Flame, Lightning, Mortar, Frost, Rocket) with 4 forms
-  each, tags from cards and 7 synergies (Napalm, Chain Barrage, Cryoblast, Skewer, Wildfire, Hunter Swarm,
-  Shatter Lance). Weapons unlock through blueprints, and gain mastery.
+  safe or risky roads, trade a heart at a blood altar, pick a blessing before each boss. In Endless you pick
+  the next encounter type between waves.
+- **Weapons:** 8 families (Cannon, Gatling, Crossbow, Flame, Lightning, Mortar, Frost, Rocket) with distinct
+  identities (Gatling spins up, Crossbow fires a power bolt every 4th volley, Rocket seeks the toughest target,
+  Cannon knocks back, Mortar lobs over shields) and 11 synergies including Napalm, Storm Web, Frost Field,
+  Hellfire and Cannonade. Weapons unlock through blueprints, and gain mastery.
 - **Bosses:** Barrel King, Iron Golem, War Machine, Siege Engine, Dragon. Each has weak points or shields,
-  phases, telegraphed attacks and vulnerable windows. Mini-bosses ambush mid-stage.
+  phases, telegraphed attacks and vulnerable windows, an entrance title, and drops its own trophy relic.
 - **Modes:** Campaign (3 difficulties, stars, ranks), Daily Challenge (same seed for everyone), Endless.
 - **Progress:** Forge upgrades, abilities, relics, achievements, mastery, all saved on the device. Saves from
   earlier versions are migrated.
@@ -61,7 +74,7 @@ Android app.
 
 ## Layout
 
-- `web/src/data/` content tables: weapons, cards and synergies, enemies, modifiers, formations, realms, meta progression.
+- `web/src/data/` content tables: encounter types (`encounters.js`), power frenzies (`frenzies.js`), weapons, cards and synergies, enemies, modifiers, formations, realms, meta progression.
 - `web/src/levelgen.js` the stage generator (profiles, pacing beats, events, endless and daily).
 - `web/src/game.js` the game loop and damage pipeline; `bosses.js`, `hazards.js` and `gfx.js` for bosses, hazards and models.
 - `android/` a thin native wrapper: full-screen WebView, save storage and the update installer (`UpdateManager.java`).

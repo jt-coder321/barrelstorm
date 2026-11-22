@@ -10,7 +10,7 @@ const DEFAULTS = {
   settings: { sound: true, haptics: true, quality: true, autoUpdate: true },
   lastUpdateCheck: 0,
   // Added in the gameplay overhaul (older saves get these defaults merged in).
-  version: 2,
+  version: 3,
   weapons: { unlocked: ['cannon', 'gatling', 'crossbow'], blueprints: {}, mastery: {} },
   loadout: { weapon: 'cannon', ability: 'bomb', relic: '' },
   relics: [],
@@ -23,6 +23,10 @@ const DEFAULTS = {
   bossesBeaten: [],
   daily: { date: '', best: 0, done: false },
   endless: { bestWave: 0, bestScore: 0 },
+  // Added in 2.0.
+  archetypesWon: [],
+  frenziesSeen: [],
+  tutorialDone: false,
 };
 
 // Keys whose value is a free-form map (any keys allowed), merged as a whole instead of key by key.
@@ -67,14 +71,23 @@ function fresh() {
 // Saves from before the overhaul (no `version`) keep coins, stages and forge levels. Their old weapon
 // tier progress turns into weapon unlocks so nobody starts over.
 function migrate(save, raw) {
-  if (!raw || raw.version >= 2) return save;
+  if (!raw) return save;
+  if (raw.version >= 2) {
+    // 2.0: players who already cleared stages do not need the first-run control hint.
+    if ((raw.version || 0) < 3) {
+      save.version = 3;
+      if ((save.unlocked || 1) > 2) save.tutorialDone = true;
+    }
+    return save;
+  }
   const extra = { 3: 'lightning', 4: 'rocket', 5: 'mortar' };
   for (const [tier, fid] of Object.entries(extra)) {
     if ((raw.bestTier || 0) >= Number(tier) && !save.weapons.unlocked.includes(fid)) save.weapons.unlocked.push(fid);
   }
   save.stats.totalKills = raw.totalKills || 0;
   save.stats.cleared = Math.max(0, (raw.unlocked || 1) - 1);
-  save.version = 2;
+  save.version = 3;
+  if ((save.unlocked || 1) > 2) save.tutorialDone = true;
   return save;
 }
 
