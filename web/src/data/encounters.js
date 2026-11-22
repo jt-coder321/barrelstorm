@@ -49,7 +49,7 @@ export const ARCHETYPES = {
   jackpot: {
     id: 'jackpot', name: 'Jackpot', icon: '\u{1F3B0}', objective: 'jackpot', leakHurts: false, collide: 'heavy',
     goal: '45 seconds to smash as much gold as you can', tip: 'Pinatas spill coins every time you hit them',
-    reward: 'Huge coins', maxMods: 1, banMods: ['goldrush', 'regen', 'double', 'ambush', 'treasure', 'dark'], kinds: {}, minStage: 8, weight: 3,
+    reward: 'Huge coins', maxMods: 1, banMods: ['goldrush', 'regen', 'double', 'ambush', 'treasure', 'fortified'], kinds: {}, minStage: 8, weight: 3,
   },
   challenge: {
     id: 'challenge', name: 'Challenge', icon: '\u{1F3AF}', objective: 'challenge', leakHurts: true, collide: 'heavy',

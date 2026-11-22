@@ -1313,15 +1313,20 @@ function propMaker(kind) {
       };
     }
     case 'pillars': {
-      const st = mat(0x4a4038);
-      const fire = new THREE.MeshBasicMaterial({ color: 0xffa23a });
+      // Crystal Caverns: pale stone pillars ringed with bright crystal clusters.
+      const st = mat(0x9aa4b4);
+      const cols = [0x7fe8ff, 0xc89aff, 0x9affc8].map((c) => new THREE.MeshBasicMaterial({ color: c }));
       return (s) => {
         const g = new THREE.Group();
         g.add(cyl(0.5 * s, 0.6 * s, 7, st, 0, 3.5, 0, 8));
         g.add(box(1.4 * s, 0.4, 1.4 * s, st, 0, 0.2, 0));
-        const f = ball(0.22, fire, 0.6 * s, 2.6, 0);
-        f.name = 'flame';
-        g.add(f);
+        const cm = cols[Math.floor(Math.random() * cols.length)];
+        for (let i = 0; i < 3; i++) {
+          const h = (0.8 + Math.random() * 0.9) * s;
+          const c = cyl(0, 0.22 * s, h, cm, rand(-0.7, 0.7) * s, h / 2 + 0.3, rand(-0.7, 0.7) * s, 5);
+          c.rotation.z = rand(-0.4, 0.4);
+          g.add(c);
+        }
         return g;
       };
     }
@@ -1517,7 +1522,7 @@ export function applyBiome(env, id) {
   env.groundMat.needsUpdate = true;
   env.wallMat.color.setHex(b.wall);
   env.castleMat.color.setHex(b.wall);
-  env.roofMat.color.setHex(id === 'frozen' ? 0x6a8ab8 : id === 'forest' ? 0x3a4a3a : id === 'factory' ? 0x4a4440 : 0xb8342b);
+  env.roofMat.color.setHex(id === 'frozen' ? 0x6a8ab8 : id === 'forest' ? 0x4e6a4a : id === 'factory' ? 0x6a5e54 : id === 'dungeon' ? 0x7a8aa8 : 0xb8342b);
   for (const k of Object.keys(env.sets)) for (const p of env.sets[k]) p.obj.visible = false;
   for (const p of propSet(env, b.props)) p.obj.visible = true;
   setDarkness(env, 0);
