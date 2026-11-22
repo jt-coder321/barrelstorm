@@ -25,13 +25,11 @@ export const MODIFIERS = [
   },
   {
     id: 'rain', name: 'Explosive Rain', icon: '☄', desc: 'Bombs fall from the sky. They hit barrels too', minStage: 3, weight: 7, threat: 2,
-    conflicts: ['dark'],
     cfg: (c) => { c.rain = true; },
   },
   {
-    id: 'dark', name: 'Dark Battlefield', icon: '\u{1F311}', desc: 'Night falls. Only lit targets glow', minStage: 5, weight: 5, threat: 1,
-    conflicts: ['rain'], noBiome: ['dungeon'],
-    cfg: (c) => { c.dark = true; },
+    id: 'fortified', name: 'Barricades', icon: '\u{1F6A7}', desc: 'Wooden barricades block your shots. Blast them with kegs or go around', minStage: 5, weight: 5, threat: 1,
+    cfg: (c) => { c.kinds.wall = (c.kinds.wall || 0) + 1.4; c.kinds.keg = (c.kinds.keg || 0) + 1.5; },
   },
   {
     id: 'shielded', name: 'Shielded Formation', icon: '\u{1F535}', desc: 'Shield bearers protect their neighbors. Break them first', minStage: 4, weight: 7, threat: 2,

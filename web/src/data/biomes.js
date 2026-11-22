@@ -25,10 +25,10 @@ export const BIOMES = {
     props: 'cactus', ambient: 'sand', hazard: 'gust', hazardName: 'Sandstorm gusts push everything sideways',
   },
   dungeon: {
-    id: 'dungeon', name: 'Underground Dungeon', icon: '\u{1F56F}', unlock: 13,
-    sky: ['#05050a', '#0b0b14', '#14121c', '#1d1822'], fog: 0x0d0b12, fogNear: 14, fogFar: 54,
-    ground: '#1a1712', stone: [72, 66, 60], wall: 0x3a342e, hemi: [0x8a7aa0, 0x2a2016, 0.7], sun: [0xffa050, 0.8],
-    props: 'pillars', ambient: 'dust', hazard: 'traps', hazardName: 'Darkness and spike traps', dark: true,
+    id: 'dungeon', name: 'Crystal Caverns', icon: '\u{1F48E}', unlock: 13,
+    sky: ['#3b5a8a', '#6f94c4', '#a8d4e8', '#d8f2f4'], fog: 0xb4dbe6, fogNear: 30, fogFar: 100,
+    ground: '#6a7a8c', stone: [150, 160, 176], wall: 0x8a96a8, hemi: [0xe4f4ff, 0x5a6a7e, 1.15], sun: [0xfff4e0, 1.9],
+    props: 'pillars', ambient: 'dust', hazard: 'traps', hazardName: 'Spike traps snap up from the floor',
   },
   ruins: {
     id: 'ruins', name: 'Abandoned Fortress', icon: '\u{1F3DA}', unlock: 16,
@@ -38,14 +38,14 @@ export const BIOMES = {
   },
   forest: {
     id: 'forest', name: 'Haunted Forest', icon: '\u{1F47B}', unlock: 19,
-    sky: ['#0c1420', '#1c2a3a', '#3a4a4a', '#5a6a5a'], fog: 0x223030, fogNear: 22, fogFar: 80,
-    ground: '#22301e', stone: [70, 80, 66], wall: 0x3a4436, hemi: [0x9ad0c0, 0x1a2418, 0.7], sun: [0xa0ffd8, 1.1],
+    sky: ['#4a6a8a', '#7ea0b8', '#b8d4c8', '#dcecd8'], fog: 0xb8d0c0, fogNear: 30, fogFar: 96,
+    ground: '#4a6a3a', stone: [120, 134, 112], wall: 0x6e7e64, hemi: [0xe0fff0, 0x3a4a30, 1.1], sun: [0xf0fff0, 1.8],
     props: 'deadtrees', ambient: 'wisps', hazard: 'haunt', hazardName: 'Ghost barrels fade in and out',
   },
   factory: {
     id: 'factory', name: 'War Factory', icon: '\u{1F3ED}', unlock: 22,
-    sky: ['#1e1e22', '#3a3430', '#6a5038', '#a0703a'], fog: 0x4a3a2a, fogNear: 28, fogFar: 92,
-    ground: '#2e2b28', stone: [88, 84, 80], wall: 0x5a524a, hemi: [0xffd0a0, 0x2a2018, 0.85], sun: [0xffc080, 1.9],
+    sky: ['#4a5a78', '#8a8a96', '#d0a878', '#f0c890'], fog: 0xc8a888, fogNear: 30, fogFar: 98,
+    ground: '#5e5850', stone: [128, 122, 116], wall: 0x7a7066, hemi: [0xfff0d8, 0x4a3e30, 1.05], sun: [0xffd8a0, 2.0],
     props: 'gears', ambient: 'sparks', hazard: 'saw', hazardName: 'Sawblades sweep across the road',
   },
 };
