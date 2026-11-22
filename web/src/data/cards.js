@@ -15,9 +15,9 @@ export const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary', 'mythic'];
 // Every card: id, name, icon, rarity, desc, max (stack limit), tags (granted), when (ctx => offerable), apply(g)
 export const CARDS = [
   // ---------- common: numbers ----------
-  { id: 'dmg', name: 'Sharpened Shot', icon: '⚔', rarity: 'common', desc: '+25% damage', max: 6, apply: (g) => { g.mods.dmgMul += 0.25; } },
-  { id: 'rate', name: 'Oiled Gears', icon: '\u{1F4A8}', rarity: 'common', desc: '+18% fire rate', max: 6, apply: (g) => { g.mods.rateMul += 0.18; } },
-  { id: 'crit', name: 'Keen Eye', icon: '\u{1F441}', rarity: 'common', desc: '+8% critical chance', max: 5, apply: (g) => { g.mods.crit += 0.08; } },
+  { id: 'dmg', name: 'Sharpened Shot', icon: '⚔', rarity: 'common', desc: '+35% damage', max: 6, apply: (g) => { g.mods.dmgMul += 0.35; } },
+  { id: 'rate', name: 'Oiled Gears', icon: '\u{1F4A8}', rarity: 'common', desc: '+25% fire rate', max: 6, apply: (g) => { g.mods.rateMul += 0.25; } },
+  { id: 'crit', name: 'Keen Eye', icon: '\u{1F441}', rarity: 'common', desc: '+12% critical chance. Crits deal double', max: 5, tags: ['crit'], apply: (g) => { g.mods.crit += 0.12; } },
   { id: 'levels', name: 'Fresh Recruits', icon: '\u{1F6E1}', rarity: 'common', desc: 'Weapon +3 levels', max: 9, apply: (g) => { g.addLevels(3, true); } },
   { id: 'purse', name: 'Fat Purse', icon: '\u{1FA99}', rarity: 'common', desc: '+30% coins this stage', max: 4, apply: (g) => { g.mods.coinMul += 0.3; } },
   { id: 'mend', name: 'Field Medic', icon: '❤', rarity: 'common', desc: 'Heal 1 heart', max: 9, when: (c) => c.hearts < c.maxHearts, apply: (g) => { g.heal(1); } },
@@ -33,7 +33,7 @@ export const CARDS = [
   { id: 'rapid', name: 'Rapid Loader', icon: '⏩', rarity: 'rare', desc: '+35% fire rate', max: 3, tags: ['rapid'], apply: (g) => { g.mods.rateMul += 0.35; } },
   { id: 'seek', name: 'Seeker Fins', icon: '\u{1F9ED}', rarity: 'rare', desc: 'Shots curve toward targets', max: 2, tags: ['homing'], apply: (g) => { g.mods.homing += 3.5; } },
   { id: 'heavy', name: 'Heavy Shot', icon: '\u{1F528}', rarity: 'rare', desc: '+55% damage, -12% fire rate', max: 3, apply: (g) => { g.mods.dmgMul += 0.55; g.mods.rateMul -= 0.12; } },
-  { id: 'critdmg', name: 'Assassin Oil', icon: '\u{1F5E1}', rarity: 'rare', desc: 'Critical hits deal 3x instead of 2x', max: 1, apply: (g) => { g.mods.critMul = 3; g.mods.crit += 0.04; } },
+  { id: 'critdmg', name: 'Assassin Oil', icon: '\u{1F5E1}', rarity: 'rare', desc: 'Critical hits deal 3x instead of 2x', max: 1, tags: ['crit'], apply: (g) => { g.mods.critMul = 3; g.mods.crit += 0.04; } },
 
   // ---------- epic: build defining ----------
   { id: 'volley', name: 'Volley', icon: '\u{1F386}', rarity: 'epic', desc: '+2 projectiles, -15% damage', max: 2, tags: ['multishot'], apply: (g) => { g.mods.bolts += 2; g.mods.dmgMul -= 0.15; } },
@@ -44,6 +44,13 @@ export const CARDS = [
   { id: 'giant', name: 'Giant Slayer', icon: '\u{1F479}', rarity: 'epic', desc: '+80% damage to bosses, elites and big targets', max: 2, apply: (g) => { g.mods.bigDmg += 0.8; } },
   { id: 'golden', name: 'Golden Touch', icon: '\u{1F451}', rarity: 'epic', desc: '+70% coins, crits drop extra gold', max: 1, apply: (g) => { g.mods.coinMul += 0.7; g.mods.critGold = true; } },
   { id: 'ricochet', name: 'Ricochet', icon: '\u{1F501}', rarity: 'epic', desc: 'Shots bounce to a second target', max: 1, tags: ['pierce'], apply: (g) => { g.mods.ricochet = true; } },
+
+  { id: 'flank', name: 'Flank Guns', icon: '↔', rarity: 'epic', desc: 'Every volley also fires two shots out to the sides', max: 1, tags: ['multishot'], apply: (g) => { g.mods.flank = true; } },
+  { id: 'quake', name: 'Quake Shot', icon: '\u{1F30A}', rarity: 'epic', desc: 'Every 12th kill sends a shockwave up the road that shoves everything back', max: 1, apply: (g) => { g.mods.quake = true; } },
+  { id: 'blasting', name: 'Blasting Powder', icon: '\u{1F9E8}', rarity: 'rare', desc: 'Kegs blast 50% wider and twice as hard. Bigger chains', max: 2, tags: ['explosive'], apply: (g) => { g.mods.kegPower += 0.5; } },
+  { id: 'magnet', name: 'Lodestone', icon: '\u{1F9F2}', rarity: 'rare', desc: 'Orbs, gold and hearts fly to you from two lanes away', max: 1, apply: (g) => { g.mods.magnet = 2.6; } },
+  { id: 'hymn', name: 'Battle Hymn', icon: '\u{1F3BA}', rarity: 'rare', desc: 'Power frenzies last 60% longer', max: 2, apply: (g) => { g.mods.frenzyTime += 0.6; } },
+  { id: 'fortune', name: "Fortune's Favor", icon: '\u{1F52E}', rarity: 'epic', desc: 'Power orbs drop twice as often. One drops right now', max: 1, apply: (g) => { g.mods.orbLuck += 1; g.dropOrb(g.player.root.position.x, -14, true); } },
 
   // ---------- legendary ----------
   { id: 'triple', name: 'Triple Barrel', icon: '\u{1F531}', rarity: 'legendary', desc: '+3 projectiles', max: 1, tags: ['multishot'], apply: (g) => { g.mods.bolts += 3; } },
@@ -69,18 +76,22 @@ export function weaponCard(fid, locked) {
 
 // Synergies switch on when the right tags meet (tags come from the weapon family and from cards).
 export const SYNERGIES = [
-  { id: 'napalm', name: 'Napalm', icon: '\u{1F30B}', needs: ['fire', 'explosive'], desc: 'Explosions leave burning ground' },
+  { id: 'napalm', name: 'Napalm', icon: '\u{1F30B}', needs: ['fire', 'explosive'], desc: 'Explosions leave burning ground, burning targets explode' },
   { id: 'barrage', name: 'Chain Barrage', icon: '\u{1F329}', needs: ['lightning', 'rapid'], desc: 'Every 6th shot fires a lightning barrage' },
   { id: 'cryoblast', name: 'Cryoblast', icon: '\u{1F9CA}', needs: ['frost', 'explosive'], desc: 'Frozen targets shatter in an icy blast' },
   { id: 'skewer', name: 'Skewer', icon: '\u{1F362}', needs: ['pierce', 'multishot'], desc: 'Each target pierced adds +40% damage' },
   { id: 'wildfire', name: 'Wildfire', icon: '\u{1F386}', needs: ['fire', 'lightning'], desc: 'Lightning arcs ignite targets' },
   { id: 'swarm', name: 'Hunter Swarm', icon: '\u{1F41D}', needs: ['homing', 'multishot'], desc: '+1 projectile, sharper homing' },
+  { id: 'stormweb', name: 'Storm Web', icon: '\u{1F578}', needs: ['lightning', 'multishot'], desc: 'Lightning forks: every jump splits to two targets' },
+  { id: 'frostfield', name: 'Frost Field', icon: '\u{1F9CA}', needs: ['frost', 'lob'], desc: 'Lobbed shots leave freezing ground that stops barrels cold' },
+  { id: 'hellfire', name: 'Hellfire', icon: '\u{2604}', needs: ['homing', 'crit'], desc: 'Critical hits detonate in a huge blast' },
+  { id: 'cannonade', name: 'Cannonade', icon: '\u{1F4A2}', needs: ['explosive', 'pierce'], desc: 'Shots punch through and explode at every target' },
   { id: 'shatter', name: 'Shatter Lance', icon: '\u{1F48E}', needs: ['frost', 'pierce'], desc: 'Piercing shots deal +100% to chilled targets' },
 ];
 
 export const FAMILY_TAGS = {
   cannon: ['explosive'], gatling: ['rapid'], crossbow: ['pierce'], flame: ['fire'],
-  lightning: ['lightning'], mortar: ['explosive'], frost: ['frost'], rocket: ['homing', 'explosive'],
+  lightning: ['lightning'], mortar: ['explosive', 'lob'], frost: ['frost'], rocket: ['homing', 'explosive'],
 };
 
 // Blessings are offered right before a boss: a temporary edge for that fight.

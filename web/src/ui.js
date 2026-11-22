@@ -3,7 +3,9 @@ import { FAMILIES, FAMILY_IDS, BLUEPRINTS_TO_UNLOCK, masteryLevel } from './data
 import { RARITY, SYNERGIES } from './data/cards.js';
 import { BIOMES, BIOME_IDS } from './data/biomes.js';
 import { MODIFIER_BY_ID, MODIFIERS } from './data/modifiers.js';
-import { stageProfile, dailySetup, BOSS_NAMES, STRUCTURES, BOSS_IDS } from './levelgen.js';
+import { stageProfile, dailySetup, BOSS_NAMES, BOSS_IDS } from './levelgen.js';
+import { ARCHETYPES, ARCHETYPE_IDS, CHALLENGES } from './data/encounters.js';
+import { FRENZIES, FRENZY_IDS } from './data/frenzies.js';
 import { fmt, dateKey } from './util.js';
 import { writeSave, resetSave } from './save.js';
 import * as Updater from './updater.js';
@@ -213,23 +215,28 @@ export class UI {
       const b = BIOMES[p.biome];
       const lines = [`<div class="si-biome">${b.icon} ${b.name}<small>${b.hazardName}</small></div>`];
       if (p.boss) lines.push(`<div class="si-boss">&#9760; BOSS: ${BOSS_NAMES[p.boss]}</div>`);
-      else lines.push(`<div class="si-obj">${p.objective === 'survive' ? '⏱ Hold the line' : p.objective === 'hunt' ? '\u{1F451} Hunt the captains' : '\u{1F4A5} Destroy the barrels'} · ${STRUCTURES[p.structure].name}</div>`);
+      else {
+        const A = ARCHETYPES[p.arch];
+        const C = p.challenge ? CHALLENGES[p.challenge] : null;
+        lines.push(`<div class="si-arch">${C ? C.icon : A.icon} ${C ? `${A.name}: ${C.name}` : A.name}${this.save.archetypesWon.includes(p.arch) ? '' : ' <i class="newtag">NEW</i>'}<small>${C ? C.desc : A.goal}</small><small class="rew">Reward: ${A.reward}</small></div>`);
+      }
       lines.push(`<div class="chips">${p.mods.map((id) => chip(MODIFIER_BY_ID[id])).join('')}</div>`);
       info.innerHTML = lines.join('');
       $('btn-play').textContent = p.boss ? 'FIGHT THE BOSS' : 'PLAY';
       this.renderDifficulty();
     } else if (this.mode === 'daily') {
       const d = dailySetup(dateKey());
+      const DA = ARCHETYPES[d.profile.arch];
       const done = this.save.daily.date === dateKey() && this.save.daily.done;
       const f = FAMILIES[d.weapon];
       info.innerHTML = `<div class="si-biome">\u{1F4C5} Today's challenge<small>Same stage for everyone today. Random weapon, three modifiers.</small></div>
-        <div class="si-obj">${BIOMES[d.profile.biome].icon} ${BIOMES[d.profile.biome].name} · ${f.icon} ${f.name}</div>
+        <div class="si-obj">${DA.icon} ${DA.name}${d.profile.challenge ? `: ${CHALLENGES[d.profile.challenge].name}` : ''} · ${BIOMES[d.profile.biome].icon} ${BIOMES[d.profile.biome].name} · ${f.icon} ${f.name}</div>
         <div class="chips">${d.profile.mods.map((id) => chip(MODIFIER_BY_ID[id])).join('')}</div>
         <div class="si-best">${done ? `Cleared today · best score ${fmt(this.save.daily.best)}` : 'First clear today: +300 coins and a blueprint'}</div>`;
       $('diff-row').innerHTML = '';
       $('btn-play').textContent = done ? 'PLAY AGAIN' : 'PLAY DAILY';
     } else {
-      info.innerHTML = `<div class="si-biome">♾ Endless siege<small>Waves never stop. Every wave a new realm and new modifiers. Bosses every 4th wave.</small></div>
+      info.innerHTML = `<div class="si-biome">♾ Endless run<small>Your build carries from wave to wave. After each wave, pick which encounter comes next. Boss every 4th wave.</small></div>
         <div class="si-best">Best wave ${this.save.endless.bestWave || 0} · best score ${fmt(this.save.endless.bestScore || 0)}</div>
         <div class="si-obj">Weapon: ${FAMILIES[w].icon} ${FAMILIES[w].name}</div>`;
       $('diff-row').innerHTML = '';
@@ -331,7 +338,7 @@ export class UI {
       el.className = `card r-${c.rarity}`;
       el.style.setProperty('--rc', r.color);
       el.style.animationDelay = `${i * 0.09}s`;
-      const tag = c.weapon ? 'WEAPON' : c.tags ? c.tags.map((t) => t.toUpperCase()).join(' · ') : '';
+      const tag = c.path ? 'PATH' : c.weapon ? 'WEAPON' : c.tags ? c.tags.map((t) => t.toUpperCase()).join(' · ') : '';
       el.innerHTML = `<div class="card-rarity">${r.name}</div><div class="card-icon">${c.icon}</div><div class="card-name">${c.name}</div>
         <div class="card-desc">${c.desc}</div>${tag ? `<div class="card-tag">${tag}</div>` : ''}`;
       el.disabled = !d.canAfford;
@@ -379,6 +386,9 @@ export class UI {
     }
     add('Score', fmt(r.score));
     add('Best combo / chain', `${r.bestCombo} / ${r.bestChain}`);
+    if (r.arch === 'treasure') add('Gold collected', `${r.loot} / ${r.lootGoal}`);
+    if (r.arch === 'siege') add('Gate standing', `${Math.round((r.gate / 10) * 100)}%`);
+    if (r.frenzies) add('Power frenzies', String(r.frenzies));
     const f = FAMILIES[r.family];
     add('Weapon', `${f.icon} ${f.forms[r.form].name} Lv ${r.level}`);
     for (const bp of r.drops.blueprints) add('Blueprint', `${FAMILIES[bp].icon} ${FAMILIES[bp].name} ${Math.min(BLUEPRINTS_TO_UNLOCK, this.save.weapons.blueprints[bp] || 0)}/${BLUEPRINTS_TO_UNLOCK}`, 'drop');
@@ -397,6 +407,9 @@ export class UI {
     st.totalKills = (st.totalKills || 0) + r.kills;
     st.bestCombo = Math.max(st.bestCombo || 0, r.bestCombo);
     st.bestChain = Math.max(st.bestChain || 0, r.bestChain);
+    if (r.win && r.arch && !sv.archetypesWon.includes(r.arch)) sv.archetypesWon.push(r.arch);
+    st.archTypes = sv.archetypesWon.length;
+    if (r.win) sv.tutorialDone = true;
     if (r.mode === 'campaign' && r.win) {
       sv.unlocked = Math.max(sv.unlocked, r.stage + 1);
       sv.stage = r.stage + 1;
@@ -424,7 +437,8 @@ export class UI {
     this.persist();
     const objs = r.objectives.map((o) => `<div class="robj ${o.done ? 'done' : ''}">${o.done ? '★' : '☆'} ${o.text}</div>`).join('');
     if (r.win) {
-      $('win-sub').textContent = r.mode === 'daily' ? 'Daily challenge cleared' : `Stage ${r.stage} cleared`;
+      const A = ARCHETYPES[r.arch] || ARCHETYPES.demolition;
+      $('win-sub').textContent = `${A.icon} ${r.challenge ? CHALLENGES[r.challenge].name : A.name}: ${r.mode === 'daily' ? 'daily challenge cleared' : `stage ${r.stage} cleared`}`;
       $('win-rank').textContent = r.rank;
       $('win-rank').className = `rank rank-${r.rank}`;
       $('win-stars').innerHTML = this.stars(r.stars);
@@ -433,7 +447,7 @@ export class UI {
       $('btn-next').textContent = r.mode === 'campaign' ? 'Next stage' : 'Play again';
       this.show('victory');
     } else {
-      $('lose-sub').textContent = r.mode === 'endless' ? `Fell on wave ${r.wave}` : `Stage ${r.stage}: the siege broke through`;
+      $('lose-sub').textContent = r.mode === 'endless' ? `Fell on wave ${r.wave}${r.loseReason ? `: ${r.loseReason.toLowerCase()}` : ''}` : `Stage ${r.stage}: ${r.loseReason ? r.loseReason.toLowerCase() : 'the siege broke through'}`;
       $('lose-rank-row').classList.toggle('hidden', r.mode !== 'endless');
       $('lose-rank').textContent = r.rank;
       $('lose-lines').innerHTML = lines.join('');
@@ -444,7 +458,13 @@ export class UI {
 
   tip(r) {
     if (r.boss) return `Boss tip: ${({ king: 'shoot his kegs while they are next to him', golem: 'stand in the shockwave gap, then hit the glowing cores', machine: 'destroy both generators to drop the shield', siege: 'break the planks first, then watch for the safe lane', dragon: 'move out of the fire lane, strike when it lands' })[r.boss]}.`;
+    const A = ARCHETYPES[r.arch];
+    if (A && A.tip && Math.random() < 0.6) return `Tip: ${A.tip}.`;
     const tips = [
+      'Glowing orbs are power frenzies. Drive into them!',
+      'Archers fire down their own lane. Step aside when the red strip glows, then step back and shoot.',
+      'Healers mend everything around them. Kill them first.',
+      'Topple a powder tower and it crushes its whole lane.',
       'Combine card tags: fire + explosive makes Napalm, frost + explosive makes Cryoblast.',
       'Your ability button (bottom right) charges with every kill.',
       'Kill shield bearers first; they protect everything around them.',
@@ -481,7 +501,7 @@ export class UI {
     $('trophy-stats').innerHTML = [
       stat('Stages cleared', st.cleared || 0), stat('Stars', stars), stat('Targets destroyed', fmt(st.totalKills || 0)),
       stat('Best combo', st.bestCombo || 0), stat('Best chain', st.bestChain || 0), stat('Bosses slain', st.bossKills || 0),
-      stat('Endless best', `W${this.save.endless.bestWave || 0}`), stat('S ranks', st.sRanks || 0), stat('Vaults found', st.vaults || 0),
+      stat('Endless best', `W${this.save.endless.bestWave || 0}`), stat('S ranks', st.sRanks || 0), stat('Frenzies', st.frenzies || 0),
     ].join('');
     $('trophy-list').innerHTML = ACHIEVEMENTS.map((a) => {
       const done = this.save.achievements[a.id];
@@ -493,7 +513,9 @@ export class UI {
     const realms = BIOME_IDS.map((id) => seen(BIOMES[id].unlock <= this.save.unlocked, `${BIOMES[id].icon} ${BIOMES[id].name}`)).join('');
     const bosses = BOSS_IDS.map((id) => seen(this.save.bossesBeaten.includes(id), BOSS_NAMES[id])).join('');
     const syn = SYNERGIES.map((s) => seen(this.save.synergiesSeen.includes(s.id), `${s.icon} ${s.name}`)).join('');
-    $('trophy-codex').innerHTML = `<div class="codex"><small>Realms</small>${realms}</div><div class="codex"><small>Bosses slain</small>${bosses}</div>
+    const archs = ARCHETYPE_IDS.map((id) => seen(this.save.archetypesWon.includes(id), `${ARCHETYPES[id].icon} ${ARCHETYPES[id].name}`)).join('');
+    const frz = FRENZY_IDS.map((id) => seen(this.save.frenziesSeen.includes(id), `${FRENZIES[id].icon} ${FRENZIES[id].name.toLowerCase()}`)).join('');
+    $('trophy-codex').innerHTML = `<div class="codex"><small>Encounters won</small>${archs}</div><div class="codex"><small>Power frenzies</small>${frz}</div><div class="codex"><small>Realms</small>${realms}</div><div class="codex"><small>Bosses slain</small>${bosses}</div>
       <div class="codex"><small>Synergies</small>${syn}</div><div class="codex"><small>Modifiers</small>${MODIFIERS.length} in the rotation</div>`;
   }
 

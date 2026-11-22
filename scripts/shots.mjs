@@ -51,6 +51,18 @@ const play = async (stage, name, secs, weapon) => {
   await shot(name);
 };
 await page.evaluate(() => window.__bs.ui.quitToMenu());
+// 2.0 encounter types (stage number -> archetype in the campaign intro order).
+for (const [st, nm, secs, w] of [[1, 'arch-demolition', 16], [2, 'arch-treasure', 14, 'gatling'], [3, 'arch-survival', 22, 'flame'], [4, 'arch-siege', 20, 'crossbow'],
+  [6, 'arch-elite', 20, 'lightning'], [7, 'arch-ambush', 22, 'rocket'], [8, 'arch-jackpot', 12, 'mortar'], [9, 'arch-challenge', 16, 'frost'], [11, 'arch-gauntlet', 18, 'cannon']]) {
+  await play(st, nm, secs, w);
+}
+// A power frenzy in action.
+await page.evaluate(() => { const { ui, save } = window.__bs; save.loadout.weapon = 'gatling'; ui.play('campaign', 3); });
+await page.waitForTimeout(400);
+await page.evaluate(() => { window.__bs.game.hurt = () => {}; window.__step(8, 0); window.__bs.game.activateFrenzy('barrage'); window.__step(1.2, 0); });
+await shot('frenzy-barrage');
+await page.evaluate(() => { window.__bs.game.dropOrb(0, -12, true); window.__step(0.4, 0); });
+await shot('power-orb');
 await play(5, 'boss-king', 14);
 await play(10, 'boss-golem', 16, 'gatling');
 await play(15, 'boss-machine', 16, 'lightning');

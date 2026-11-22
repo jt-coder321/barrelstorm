@@ -68,6 +68,10 @@ await page.evaluate(({ speed, forge }) => {
         if (z > -14 && z < 1 && Math.abs(x - h.gapX) > h.gapW / 2 - 0.4) d += 12;
       }
     }
+    for (const b of game.barrels) {
+      if (b.dead || b.part || !game.collides(b)) continue;
+      if (b.z > -5 && b.z < 1 && Math.abs(b.x - x) < b.r + 0.6) d += 8;
+    }
     return d;
   }
   function bot() {
@@ -96,6 +100,9 @@ await page.evaluate(({ speed, forge }) => {
     }
     // gates: prefer the side of a close gate
     for (const g of game.gates) if (!g.taken && g.z > -8 && g.z < 0 && g.kind !== 'risky') want = g.x;
+    // pickups: drive into orbs, gold and hearts that are close
+    let pz = -1e9;
+    for (const p of game.pickups || []) if (p.z > -9 && p.z < 0.5 && p.z > pz) { pz = p.z; want = p.x; }
     let pick = want;
     let pd = 1e9;
     for (const x of lanes) {
@@ -127,8 +134,16 @@ const run = async (stage) => {
     const iv = setInterval(() => {
       for (const b of game.barrels) seen.kinds.add(b.part ? `boss:${b.boss.id}` : b.kind);
       for (const e of game.eventsSeen || []) seen.events.add(e);
+      if (game.elapsed > 260 && game.state === 'playing') {
+        // Watchdog: report a stuck stage instead of hanging forever.
+        clearInterval(iv);
+        ui.showResult = orig;
+        res({ stuck: true, win: false, rank: '-', stars: 0, hearts: game.hearts, elapsed: game.elapsed, biome: game.profile.biome, mods: game.profile.mods, boss: game.profile.boss,
+          arch: game.profile.arch, kindsSeen: [...seen.kinds], eventsSeen: [], cards: [], synergies: [], hurtLog: [], bestCombo: 0, bestChain: 0,
+          loseReason: `STUCK items ${game.nextItem}/${game.items.length} live ${game.barrels.filter((b) => !b.dead).map((b) => b.kind + '@' + b.z.toFixed(0)).join(',')} draft ${game.draftOpen} q ${game.draftQueue.length} pk ${game.pickups.length} boss ${!!game.bossRef}` });
+      }
     }, 100);
-    const orig = ui.showResult.bind(ui);
+    var orig = ui.showResult.bind(ui);
     ui.showResult = (r) => {
       orig(r);
       ui.showResult = orig;
@@ -141,6 +156,7 @@ const run = async (stage) => {
   const secs = ((Date.now() - t0) / 1000).toFixed(0);
   results.push(r);
   console.log(`${mode} ${stage}: ${r.win ? 'WIN ' : 'LOSE'} rank ${r.rank} stars ${r.stars} hearts ${r.hearts} game ${r.elapsed.toFixed(0)}s real ${secs}s | ${r.biome} [${r.mods.join(',')}] boss=${r.boss || '-'}`);
+  console.log(`   arch: ${r.arch}${r.challenge ? '/' + r.challenge : ''} ${r.loseReason || ''} frenzies ${r.frenzies} bossfight ${(r.bossFightT || 0).toFixed(0)}s loot ${r.loot}/${r.lootGoal} gate ${r.gate}`);
   console.log(`   kinds: ${r.kindsSeen.join(' ')}`);
   console.log(`   events: ${r.eventsSeen.join(' ')} | cards: ${r.cards.join(' ')} | synergies: ${r.synergies.join(' ')} | combo ${r.bestCombo} chain ${r.bestChain}`);
   console.log(`   hurt: ${r.hurtLog.join(' ')}`);

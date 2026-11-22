@@ -8,11 +8,15 @@ import { mulberry32, rngInt, rngPick, rngShuffle, weightedPick, hashStr, clamp }
 import { MODIFIERS, MODIFIER_BY_ID } from './data/modifiers.js';
 import { BIOMES, BIOME_IDS, unlockedBiomes } from './data/biomes.js';
 import { FORMATIONS, pickFormation } from './data/formations.js';
-import { ENEMIES } from './data/enemies.js';
+import { ENEMIES, KIND_LABEL } from './data/enemies.js';
 import { DIFFICULTY } from './data/meta.js';
 import { FAMILY_IDS } from './data/weapons.js';
+import { ARCHETYPES, ARCHETYPE_IDS, INTRO_ORDER, LATE_DEBUT, CHALLENGE_IDS } from './data/encounters.js';
 
 export const BOSS_IDS = ['king', 'golem', 'machine', 'siege', 'dragon'];
+// Bosses differ in how much of the fight their weak points are exposed, so their health pools are tuned to
+// land each fight around 30 to 60 seconds.
+const BOSS_HP_MUL = { king: 1.5, golem: 1.6, machine: 1, siege: 0.35, dragon: 1.5 };
 export const BOSS_NAMES = {
   king: 'The Barrel King', golem: 'The Iron Golem', machine: 'The War Machine', siege: 'The Siege Engine', dragon: 'The Dragon',
 };
@@ -70,7 +74,26 @@ function biomeFor(n, prevBiome) {
 }
 
 function signature(p) {
-  return `${[...p.mods].sort().join('+')}|${p.structure}`;
+  return `${p.arch}|${[...p.mods].sort().join('+')}|${p.structure}`;
+}
+
+// Which archetype a stage uses. Stages 1-10 introduce one archetype each; afterwards they are picked by
+// weight, never repeating either of the two previous stages. Boss stages stay on every 5th stage.
+function archFor(n, track, rng, prev1, prev2) {
+  if (track === 'campaign') {
+    if (n <= INTRO_ORDER.length) return INTRO_ORDER[n - 1];
+    if (LATE_DEBUT[n]) return LATE_DEBUT[n];
+    if (n % 5 === 0) return 'boss';
+  }
+  const sn = track === 'campaign' ? n : Math.max(n, 12);
+  const pick = weightedPick(rng, ARCHETYPE_IDS, (id) => {
+    const a = ARCHETYPES[id];
+    if (id === 'boss' || a.minStage > sn) return 0;
+    if (prev1 && prev1.arch === id) return 0;
+    if (prev2 && prev2.arch === id) return a.weight * 0.2;
+    return a.weight;
+  });
+  return pick || 'demolition';
 }
 
 // The profile of stage n in a given "track" (campaign or a daily seed).
@@ -80,23 +103,28 @@ export function stageProfile(n, track = 'campaign') {
   const prev1 = n > 1 ? stageProfile(n - 1, track) : null;
   const prev2 = n > 2 ? stageProfile(n - 2, track) : null;
   const rng = mulberry32(hashStr(key) ^ 0x9e3779b9);
-  const boss = track === 'campaign' && n % 5 === 0 ? bossFor(n) : null;
+  const arch = archFor(n, track, rng, prev1, prev2);
+  const A = ARCHETYPES[arch];
+  const boss = arch === 'boss' ? (track === 'campaign' ? bossFor(n) : rngPick(rng, BOSS_IDS)) : null;
   const biome = track === 'campaign' ? biomeFor(n, prev1 && prev1.biome) : rngPick(rng, BIOME_IDS);
   const sn = track === 'campaign' ? n : Math.max(n, 8);
+  const challenge = arch === 'challenge' ? rngPick(rng, CHALLENGE_IDS) : null;
 
   let best = null;
   for (let attempt = 0; attempt < 40; attempt++) {
-    const count = boss ? Math.min(2, modCount(sn, rng)) : modCount(sn, rng);
-    const budget = stageThreatBudget(sn);
+    const count = Math.min(A.maxMods, modCount(sn, rng));
+    const budget = stageThreatBudget(sn) - (arch === 'gauntlet' || arch === 'siege' ? 2 : 0);
     const mods = [];
     let threat = 0;
-    let pool = MODIFIERS.filter((m) => m.minStage <= sn && !(boss && m.notBoss) && !(m.noBiome && m.noBiome.includes(biome)));
+    const pool = MODIFIERS.filter((m) => m.minStage <= sn && !(boss && m.notBoss) && !(m.noBiome && m.noBiome.includes(biome)) && !A.banMods.includes(m.id)
+      && !(challenge === 'untouchable' && (m.id === 'rain' || m.id === 'bombers')));
     for (let i = 0; i < count; i++) {
       const m = weightedPick(rng, pool, (x) => {
         if (mods.includes(x.id)) return 0;
         if (mods.some((id) => (MODIFIER_BY_ID[id].conflicts || []).includes(x.id) || (x.conflicts || []).includes(id))) return 0;
-        if (threat + x.threat > budget) return 0;
+        if (threat + x.threat > Math.max(0, budget) && x.threat > 0) return 0;
         let w = x.weight;
+        if (arch === 'demolition' && x.id === 'explosive') w *= 3;
         if (prev1 && prev1.mods.includes(x.id)) w *= 0.15;
         if (prev2 && prev2.mods.includes(x.id)) w *= 0.5;
         return w;
@@ -105,23 +133,17 @@ export function stageProfile(n, track = 'campaign') {
       mods.push(m.id);
       threat += m.threat;
     }
-    const structure = boss ? 'boss' : weightedPick(rng, Object.keys(STRUCTURES), (id) => {
+    // Ordinary clears pick one of the classic pacing structures; every other archetype brings its own script.
+    const structure = arch === 'demolition' || arch === 'ambush' ? weightedPick(rng, Object.keys(STRUCTURES), (id) => {
       const s = STRUCTURES[id];
       if ((s.minStage || 1) > sn) return 0;
+      if (arch === 'ambush' && id === 'ambush') return 0;
       return prev1 && prev1.structure === id ? 0 : s.weight;
-    });
-    const objective = boss ? 'boss' : weightedPick(rng, Object.keys(OBJECTIVES), (id) => {
-      const o = OBJECTIVES[id];
-      if ((o.minStage || 1) > sn) return 0;
-      if (id !== 'clear' && prev1 && prev1.objective === id) return 0;
-      if (id === 'survive' && STRUCTURES[structure] && STRUCTURES[structure].short) return 0;
-      return o.weight;
-    });
-    const p = { n, track, biome, mods, structure, objective, boss, threat };
+    }) : arch;
+    const p = { n, track, biome, mods, structure, arch, objective: A.objective, boss, threat, challenge };
     const sig = signature(p);
-    const clash = (q) => q && (signature(q) === sig || (q.mods[0] && q.mods[0] === mods[0]));
     best = p;
-    if (!clash(prev1) && !(prev2 && signature(prev2) === sig)) break;
+    if (!(prev1 && signature(prev1) === sig) && !(prev2 && signature(prev2) === sig)) break;
   }
   profileCache.set(key, best);
   return best;
@@ -136,6 +158,14 @@ function baseConfig(profile, difficulty, mode) {
     elites: diff.elites, leakExtra: 0, treasureWaves: 0, mode,
   };
   for (const id of profile.mods) MODIFIER_BY_ID[id].cfg(c);
+  const A = ARCHETYPES[profile.arch] || ARCHETYPES.demolition;
+  for (const [k, w] of Object.entries(A.kinds)) c.kinds[k] = (c.kinds[k] || 0) + w;
+  c.arch = A.id;
+  c.leakHurts = A.leakHurts;
+  c.collide = A.collide;
+  if (A.id === 'demolition') c.kegClusters = true;
+  if (A.id === 'gauntlet') c.hpMul *= 0.7;
+  if (A.id === 'jackpot') c.coinMul *= 1.5;
   const biome = BIOMES[profile.biome];
   if (biome.dark) c.dark = true;
   if (biome.hazard === 'rubble') c.rubble = true;
@@ -159,11 +189,17 @@ function kindMix(cfg, n) {
   if (n >= 3) mix.zigzag = 0.5;
   if (n >= 4) mix.armored = 0.4;
   if (n >= 5) mix.runner = 0.5;
+  // 2.0 roster joins gradually so each new behaviour gets noticed.
+  if (n >= 2) mix.megakeg = 0.2;
+  if (n >= 2) mix.cache = 0.12;
+  if (n >= 3) mix.archer = 0.35;
+  if (n >= 4) mix.charger = 0.4;
+  if (n >= 6) mix.healer = 0.3;
+  if (n >= 8) mix.flyer = 0.3;
   for (const [k, w] of Object.entries(cfg.kinds)) mix[k] = (mix[k] || 0) + w;
   return mix;
 }
 
-const MIX_KINDS_FOR_BIG = new Set(['keg', 'small', 'runner']);
 
 export class Layout {
   constructor(profile, opts) {
@@ -221,7 +257,8 @@ export class Layout {
     const used = new Set();
     for (const s of f.slots) {
       let kind = this.pickKind(mix, s, opts.density || 0);
-      if (!s.fixed && kind === 'treasure') kind = 'normal';
+      if (!s.fixed && (kind === 'treasure' || kind === 'tower' || kind === 'pinata')) kind = 'normal';
+      if (!s.fixed && kind === 'ram' && this.rng() < 0.7) kind = 'normal';
       const x = (clamp(s.c, 0, 4) - 2) * 1.4;
       const k = `${Math.round(x * 4)}:${Math.round(s.dz * 2)}`;
       if (used.has(k)) continue;
@@ -233,7 +270,6 @@ export class Layout {
         // big targets occupy more space: skip close neighbors
         for (const o of [-1, 1]) used.add(`${Math.round((x + o * 1.4) * 4)}:${Math.round(s.dz * 2)}`);
       }
-      void MIX_KINDS_FOR_BIG;
     }
     this.at += f.depth + this.gap();
     return id;
@@ -388,7 +424,7 @@ export class Layout {
       this.cfg.ambush = false;
       const boss = rngPick(this.rng, BOSS_IDS);
       this.event('miniboss', { boss, warn: 'AMBUSH!', sub: `A lesser ${BOSS_NAMES[boss].replace('The ', '')} attacks` });
-      this.push({ at: this.at + 4, type: 'boss', boss, mini: true, hp: this.bossHp(progress, 0.32) });
+      this.push({ at: this.at + 4, type: 'boss', boss, mini: true, hp: this.bossHp(progress, 0.42) });
       this.par += 60;
       this.at += 30;
     } else if (id === 'elites') {
@@ -416,7 +452,7 @@ export class Layout {
   }
 
   bossHp(progress, mul) {
-    return Math.round(hpBase(this.n) * this.cfg.hpMul * (1 + progress * 1.5) * (60 + this.n * 3.5) * mul);
+    return Math.round(hpBase(this.n) * this.cfg.hpMul * (1 + progress * 1.5) * (60 + this.n * 2) * mul);
   }
 
   reward(progress) {
@@ -443,18 +479,293 @@ export class Layout {
   build() {
     const p = this.profile;
     this.at = 0;
-    if (p.boss) return this.buildBoss();
-    if (p.objective === 'survive') return this.buildSurvive();
-    const beats = STRUCTURES[p.structure].beats;
-    beats.forEach((b, i) => this.beat(b, i / Math.max(1, beats.length - 1)));
-    if (p.objective === 'hunt' && !this.items.some((it) => it.captain)) {
-      this.event('elites', { warn: 'CAPTAINS', sub: 'Hunt them down' });
-      this.at += 3;
-      this.enemy('elite', 0, 0, 1, 1, { captain: true });
-      this.at += 6;
+    const fn = {
+      boss: this.buildBoss, survival: this.buildSurvive, treasure: this.buildTreasure, siege: this.buildSiege,
+      gauntlet: this.buildGauntlet, elite: this.buildElite, ambush: this.buildAmbush, jackpot: this.buildJackpot,
+      challenge: this.buildChallenge, demolition: this.buildDemolition,
+    }[p.arch] || this.buildDemolition;
+    fn.call(this);
+    // Late stages scroll faster; pad distance-based encounters so they still last long enough to build up.
+    if (['demolition', 'elite', 'ambush', 'challenge', 'treasure', 'gauntlet', 'siege'].includes(p.arch) && !this.duration) {
+      let guard = 0;
+      while (this.at / this.speed < 42 && guard++ < 12) this.formation(0.9, 3, { density: 0.5 });
     }
     this.finish();
     return this;
+  }
+
+  // Length roll: some encounters are short sprints, some are long hauls.
+  lengthRoll() {
+    const r = this.rng();
+    return r < 0.25 ? 'short' : r > 0.8 ? 'long' : 'normal';
+  }
+
+  pickup(kind, x, extra = {}) {
+    return this.push({ at: this.at, type: 'pickup', kind, x, ...extra });
+  }
+
+  // A "power moment": a glowing frenzy orb in a lane, usually flanked by something to shoot.
+  powerMoment(progress) {
+    this.push({ at: this.at - 3, type: 'cue', title: 'POWER ORB!', sub: 'Drive into it', gold: true });
+    this.pickup('orb', (rngInt(this.rng, 0, 4) - 2) * 1.4);
+    this.at += 3;
+    this.formation(progress, 1, { density: 0.4 });
+  }
+
+  // ---------- Demolition: chains, kegs and powder towers ----------
+  buildDemolition() {
+    const len = this.lengthRoll();
+    const beats = STRUCTURES[this.profile.structure] ? [...STRUCTURES[this.profile.structure].beats] : ['intro', 'build', 'twist', 'major', 'reward', 'finale'];
+    if (len === 'short') beats.splice(2, 1);
+    beats.forEach((b, i) => {
+      const prog = i / Math.max(1, beats.length - 1);
+      this.beat(b, prog);
+      if (i === 1) this.formation(prog, 2, { id: this.n >= 2 ? 'towers' : 'kegcluster' });
+      if (i === Math.floor(beats.length / 2)) this.powerMoment(prog);
+      if (len === 'long' && i === beats.length - 2) this.formation(prog, 2, { id: 'megacrowd' });
+    });
+  }
+
+  // ---------- Survival: escalate every segment until the timer ends ----------
+  buildSurvive() {
+    this.duration = clamp(45 + this.n * 0.8, 45, 75);
+    const dist = this.duration * this.speed + 20;
+    const joiners = rngShuffle(this.rng, ['runner', 'archer', 'charger', 'flyer', 'healer', 'shielder'].filter((k) => this.n >= 3 || k === 'runner'));
+    const segLen = dist / 4;
+    this.beat('intro', 0);
+    let seg = 0;
+    let i = 0;
+    while (this.at < dist) {
+      const prog = clamp(this.at / dist, 0, 1);
+      const s = Math.min(3, Math.floor(this.at / segLen));
+      if (s > seg) {
+        seg = s;
+        const k = joiners[(s - 1) % joiners.length];
+        this.cfg.kinds[k] = (this.cfg.kinds[k] || 0) + 3;
+        this.push({ at: this.at - 4, type: 'cue', title: `WAVE ${s + 1}`, sub: `${KIND_LABEL[k] || 'Runners'} join the fight` });
+        if (s === 2) this.powerMoment(prog);
+        if (s === 3) this.twist(prog);
+      }
+      if (i === 3) this.reward(prog);
+      else this.formation(prog, 3, { density: 0.35 + prog * 0.4, dense: s >= 2 });
+      i++;
+    }
+  }
+
+  // ---------- Treasure Hunt: drive over gold while dodging ----------
+  buildTreasure() {
+    this.loot = 0;
+    const segs = this.lengthRoll() === 'long' ? 8 : 6;
+    this.beat('intro', 0);
+    for (let s = 0; s < segs; s++) {
+      const prog = s / segs;
+      // A ribbon of gold that weaves across lanes.
+      let lane = rngInt(this.rng, 0, 4);
+      for (let k = 0; k < 4; k++) {
+        this.pickup('gold', (lane - 2) * 1.4);
+        this.loot += 1;
+        this.at += 2.2;
+        lane = clamp(lane + rngInt(this.rng, -1, 1), 0, 4);
+      }
+      if (s % 2 === 0) this.formation(prog, 2, { density: 0.3 });
+      else {
+        // Archers or flyers guard the gold.
+        const k = this.n >= 6 && this.rng() < 0.5 ? 'flyer' : 'archer';
+        for (const x of rngShuffle(this.rng, [-2.8, 0, 2.8]).slice(0, 2)) this.enemy(k, x, 0, prog, 0.8);
+        this.enemy('cache', (rngInt(this.rng, 0, 4) - 2) * 1.4, 2, prog, 1);
+        this.loot += 2;
+        this.at += 4 + this.gap();
+      }
+      if (s === 2) {
+        this.push({ at: this.at - 4, type: 'cue', title: 'GOLD CARTS!', sub: 'Catch them before they cross', gold: true });
+        const fromLeft = this.rng() < 0.5;
+        for (let i = 0; i < 3; i++) this.enemy('treasure', (fromLeft ? -1 : 1) * 2.8, i * 2.2, prog, 0.7, { cross: fromLeft ? 1 : -1 });
+        this.loot += 9;
+        this.at += 7;
+      }
+      if (s === 3) this.reward(prog);
+      if (s === 4) this.powerMoment(prog);
+    }
+    this.lootGoal = Math.max(8, Math.round(this.loot * 0.5));
+  }
+
+  // ---------- Siege: three waves against the gate ----------
+  buildSiege() {
+    for (let w = 1; w <= 3; w++) {
+      const prog = (w - 1) / 3;
+      this.push({ at: this.at, type: 'cue', title: `WAVE ${w} OF 3`, sub: w === 3 ? 'The final assault!' : 'Protect the gate', wave: w });
+      this.at += 4;
+      const n = 2 + w;
+      for (let i = 0; i < n; i++) {
+        this.formation(prog + i * 0.04, w + 1, { density: 0.3 + w * 0.15 });
+        if (i === 1 || (w === 3 && i === 3)) {
+          this.push({ at: this.at - 3, type: 'cue', title: 'BATTERING RAM', sub: 'Stop it before it hits the gate' });
+          this.enemy('ram', (rngInt(this.rng, 0, 4) - 2) * 1.4, 0, prog, 1);
+          this.at += 3 + this.gap();
+        }
+      }
+      if (w === 1) {
+        this.at += 4;
+        this.reward(prog);
+      } else if (w === 2) {
+        this.at += 4;
+        this.powerMoment(prog);
+        this.pickup('heart', (rngInt(this.rng, 0, 4) - 2) * 1.4);
+        this.at += 4;
+      }
+    }
+  }
+
+  // ---------- Gauntlet: reach the end; obstacles hit the cart ----------
+  buildGauntlet() {
+    const segs = this.lengthRoll() === 'short' ? 6 : 8;
+    this.beat('intro', 0);
+    for (let s = 0; s < segs; s++) {
+      const prog = s / segs;
+      const kind = s % 4;
+      if (kind === 0) this.formation(prog, 3, { id: 'wallgap' });
+      else if (kind === 1) {
+        this.push({ at: this.at - 3, type: 'cue', title: 'RAMS!', sub: 'Dodge or smash them' });
+        const lanes = rngShuffle(this.rng, [0, 1, 2, 3, 4]).slice(0, 2 + (s > 3 ? 1 : 0));
+        lanes.forEach((l, i) => this.enemy('ram', (l - 2) * 1.4, i * 3, prog, 0.6));
+        this.at += 8 + this.gap();
+      } else if (kind === 2) {
+        this.push({ at: this.at, type: 'hazard', id: 'sawwave' });
+        this.at += 10;
+        for (let i = 0; i < 4; i++) this.enemy('charger', (rngInt(this.rng, 0, 4) - 2) * 1.4, i * 2.5, prog, 0.7);
+        this.at += 10 + this.gap();
+      } else {
+        for (const x of [-2.8, 2.8]) this.enemy('archer', x, 0, prog, 0.8);
+        this.formation(prog, 2, { id: 'columns' });
+      }
+      if (s === 2) this.powerMoment(prog);
+      if (s === 4) this.pickup('heart', 0);
+      if (s === 5) this.reward(prog);
+    }
+    this.formation(1, 3, { id: 'fortress' });
+  }
+
+  // ---------- Elite Hunt: three captains, each with a different guard ----------
+  buildElite() {
+    this.beat('intro', 0);
+    const guards = rngShuffle(this.rng, ['healer', 'shielder', 'archer', 'charger']);
+    for (let c = 0; c < 3; c++) {
+      const prog = 0.2 + c * 0.3;
+      this.formation(prog, 2, { density: 0.3 });
+      const g = guards[c];
+      this.push({ at: this.at, type: 'cue', title: `CAPTAIN ${c + 1} OF 3`, sub: `Guarded by ${(KIND_LABEL[g] || g).toLowerCase()}s` });
+      this.at += 4;
+      const x = (rngInt(this.rng, 1, 3) - 2) * 1.4;
+      this.enemy('elite', x, 1.5, prog, c === 2 ? 1.25 : 0.9, { captain: true });
+      for (const dx of [-1.4, 1.4]) if (Math.abs(x + dx) <= 2.8) this.enemy(g, x + dx, 0, prog, 1);
+      this.enemy(g, clamp(-x, -2.8, 2.8), 3, prog, 1);
+      this.at += 5 + this.gap();
+      if (c === 0) this.reward(prog);
+      if (c === 1) this.powerMoment(prog);
+    }
+  }
+
+  // ---------- Ambush: a calm supply run that turns violent ----------
+  buildAmbush() {
+    this.beat('intro', 0);
+    // Calm: gifts, gold and an anvil. Nothing seems wrong.
+    for (let i = 0; i < 3; i++) this.pickup('gold', (rngInt(this.rng, 0, 4) - 2) * 1.4), (this.at += 2.5);
+    this.enemy('gift', 0, 0, 0.1, 1);
+    this.at += 3 + this.gap();
+    this.reward(0.2);
+    // Then: the ambush. Enemies drop in from the sky where red circles glow, chargers hit the flanks.
+    this.event('ambush', { warn: 'AMBUSH!', sub: 'They were waiting for you' });
+    this.at += 2;
+    const drops = 6 + Math.min(4, Math.floor(this.n / 6));
+    for (let i = 0; i < drops; i++) {
+      const kind = weightedPick(this.rng, ['normal', 'armored', 'archer', 'keg', 'healer'], (k) => ({ normal: 4, armored: this.n >= 4 ? 2 : 0, archer: 2, keg: 1.5, healer: this.n >= 6 ? 1 : 0 })[k]);
+      this.push({ at: this.at + i * 0.9, type: 'drop', kind, x: (rngInt(this.rng, 0, 4) - 2) * 1.4, z: -12 - this.rng() * 8, hp: this.hp(0.5, ENEMIES[kind].hp) });
+      if (ENEMIES[kind].weight) this.barrels += ENEMIES[kind].weight;
+    }
+    this.at += drops * 0.9 + 4;
+    for (let i = 0; i < 4; i++) this.enemy('charger', i % 2 ? 2.8 : -2.8, i * 1.6, 0.5, 1);
+    this.at += 6 + this.gap();
+    this.powerMoment(0.55);
+    if (this.n >= 7) this.major(0.7);
+    else this.formation(0.7, 3, { dense: true, density: 0.5 });
+    this.beat('finale', 0.9);
+  }
+
+  // ---------- Jackpot: 45 seconds of gold ----------
+  buildJackpot() {
+    this.duration = 45;
+    const dist = this.duration * this.speed + 10;
+    this.push({ at: 0, type: 'pickup', kind: 'orb', x: 0, frenzy: 'gold' });
+    this.at += 6;
+    let i = 0;
+    while (this.at < dist) {
+      const prog = clamp(this.at / dist, 0, 1);
+      const r = i % 4;
+      if (r === 0) {
+        this.enemy('pinata', (rngInt(this.rng, 1, 3) - 2) * 1.4, 0, prog, 1);
+        this.at += 3;
+      } else if (r === 1) {
+        for (let k = 0; k < 6; k++) this.enemy(this.rng() < 0.3 ? 'gift' : 'small', (this.rng() * 4 - 2) * 1.4, k * 0.8, prog, 1.2, { gold: true });
+        this.at += 6;
+      } else if (r === 2) {
+        this.formation(prog, 2, { id: 'megacrowd' });
+      } else {
+        const fromLeft = this.rng() < 0.5;
+        for (let k = 0; k < 3; k++) this.enemy('treasure', (fromLeft ? -1 : 1) * 2.8, k * 2, prog, 0.7, { cross: fromLeft ? 1 : -1 });
+        if (this.n >= 10) this.enemy('flyer', 0, 2, prog, 0.8);
+        this.at += 6;
+      }
+      if (i === 5) this.powerMoment(prog);
+      this.at += this.gap() * 0.7;
+      i++;
+    }
+  }
+
+  // ---------- Challenge: one rule ----------
+  buildChallenge() {
+    const c = this.profile.challenge;
+    if (c === 'chainmaster') {
+      this.duration = 75;
+      this.chainGoal = 8;
+      const dist = this.duration * this.speed + 10;
+      this.cfg.kinds.keg = (this.cfg.kinds.keg || 0) + 6;
+      this.cfg.kinds.megakeg = (this.cfg.kinds.megakeg || 0) + 1;
+      let i = 0;
+      while (this.at < dist) {
+        const prog = clamp(this.at / dist, 0, 1);
+        this.formation(prog, 2, { id: ['kegcluster', 'megacrowd', 'towers', 'wedge'][i % 4] });
+        i++;
+      }
+      return;
+    }
+    if (c === 'marked') {
+      this.marked = 0;
+      const beats = ['intro', 'build', 'build', 'major', 'reward', 'finale'];
+      beats.forEach((b, i) => {
+        const before = this.items.length;
+        this.beat(b, i / (beats.length - 1));
+        // Mark two ordinary targets from each beat.
+        const cand = this.items.slice(before).filter((it) => it.type === 'enemy' && ENEMIES[it.kind].leak > 0 && !it.captain);
+        for (const it of rngShuffle(this.rng, cand).slice(0, 2)) {
+          it.marked = true;
+          this.marked++;
+        }
+      });
+      return;
+    }
+    if (c === 'powderonly') {
+      this.cfg.kinds.armored = (this.cfg.kinds.armored || 0) + 6;
+      this.cfg.kinds.keg = (this.cfg.kinds.keg || 0) + 5;
+      const beats = ['intro', 'build', 'twist', 'build', 'reward', 'finale'];
+      beats.forEach((b, i) => {
+        this.beat(b, i / (beats.length - 1));
+        this.formation(i / beats.length, 2, { id: 'kegcluster' });
+      });
+      return;
+    }
+    // untouchable
+    const beats = ['intro', 'build', 'relief', 'twist', 'reward', 'build', 'finale'];
+    beats.forEach((b, i) => this.beat(b, i / (beats.length - 1)));
   }
 
   buildBoss() {
@@ -462,39 +773,20 @@ export class Layout {
     this.beat('build', 0.25);
     this.push({ at: this.at, type: 'event', id: 'blessing', warn: 'THE BOSS APPROACHES', sub: 'Choose a blessing for the fight' });
     this.at += 6;
-    this.push({ at: this.at, type: 'boss', boss: p0(this.profile.boss), hp: this.bossHp(0.5, 1) });
+    this.push({ at: this.at, type: 'boss', boss: this.profile.boss, hp: this.bossHp(0.5, 3.6 * (BOSS_HP_MUL[this.profile.boss] || 1)) });
     this.par += 160;
     this.at += 10;
-    this.finish();
-    return this;
-  }
-
-  buildSurvive() {
-    // A stream of formations for a fixed time. The level ends when the timer runs out.
-    this.duration = 40 + Math.min(this.n, 20);
-    const dist = this.duration * this.speed + 30;
-    let i = 0;
-    this.beat('intro', 0);
-    while (this.at < dist) {
-      const prog = clamp(this.at / dist, 0, 1);
-      if (i === 3) this.reward(prog);
-      else if (i === 5) this.twist(prog);
-      else this.formation(prog, 3, { density: 0.4 + prog * 0.3 });
-      i++;
-    }
-    this.finish();
-    return this;
   }
 
   finish() {
+    if (this.profile.objective === 'hunt' && !this.items.some((it) => it.captain)) {
+      this.enemy('elite', 0, 0, 1, 1, { captain: true });
+      this.at += 6;
+    }
     this.items.sort((a, b) => a.at - b.at);
     this.length = this.at;
     return this;
   }
-}
-
-function p0(b) {
-  return b;
 }
 
 function gateValue(kind, rng, progress) {
@@ -511,14 +803,17 @@ export function genLayout(profile, opts) {
 // ---------- Endless mode ----------
 
 // Each wave is a fresh short stage built on its own profile with a rising effective stage number.
-export function endlessProfile(wave, prev) {
+export function endlessProfile(wave, prev, chosen) {
   const n = 2 + Math.floor(wave * 1.6);
   const rng = mulberry32(wave * 48271 + (prev ? hashStr(prev.biome + prev.mods.join()) : 1));
   const boss = wave % 4 === 0 ? BOSS_IDS[(wave / 4 - 1) % BOSS_IDS.length] : null;
+  const arch = boss ? 'boss' : chosen && chosen !== 'boss' ? chosen : wave === 1 ? 'demolition'
+    : weightedPick(rng, ARCHETYPE_IDS, (id) => (id === 'boss' || id === 'challenge' || (prev && prev.arch === id) ? 0 : ARCHETYPES[id].weight));
+  const A = ARCHETYPES[arch];
   const biome = rngPick(rng, BIOME_IDS.filter((b) => !prev || b !== prev.biome));
-  const pool = MODIFIERS.filter((m) => m.minStage <= n && !(boss && m.notBoss));
+  const pool = MODIFIERS.filter((m) => m.minStage <= n && !(boss && m.notBoss) && !A.banMods.includes(m.id));
   const mods = [];
-  const count = Math.min(3, 1 + Math.floor(wave / 3));
+  const count = Math.min(A.maxMods, 3, 1 + Math.floor(wave / 3));
   for (let i = 0; i < count; i++) {
     const m = weightedPick(rng, pool, (x) => {
       if (mods.includes(x.id) || (prev && prev.mods.includes(x.id))) return 0;
@@ -527,7 +822,8 @@ export function endlessProfile(wave, prev) {
     });
     if (m) mods.push(m.id);
   }
-  return { n, track: 'endless', biome, mods, structure: boss ? 'boss' : rngPick(rng, ['classic', 'blitz', 'rollercoaster']), objective: boss ? 'boss' : 'clear', boss, wave };
+  const structure = arch === 'demolition' || arch === 'ambush' ? rngPick(rng, ['classic', 'blitz', 'rollercoaster']) : arch;
+  return { n, track: 'endless', biome, mods, structure, arch, objective: A.objective, boss, wave, challenge: null };
 }
 
 // ---------- Daily challenge ----------
@@ -538,8 +834,10 @@ export function dailySetup(dateStr) {
   const n = 8 + rngInt(rng, 0, 6);
   const profile = { ...stageProfile(n, `daily:${dateStr}`) };
   // Daily stages always stack three modifiers and give a random weapon, locked or not.
-  const extra = MODIFIERS.filter((m) => !profile.mods.includes(m.id) && !(m.conflicts || []).some((c) => profile.mods.includes(c)) && !profile.mods.some((id) => (MODIFIER_BY_ID[id].conflicts || []).includes(m.id)));
-  while (profile.mods.length < 3 && extra.length) profile.mods = [...profile.mods, extra.splice(Math.floor(rng() * extra.length), 1)[0].id];
+  const A = ARCHETYPES[profile.arch] || ARCHETYPES.demolition;
+  const extra = MODIFIERS.filter((m) => !profile.mods.includes(m.id) && !A.banMods.includes(m.id) && !(profile.boss && m.notBoss) && !(m.conflicts || []).some((c) => profile.mods.includes(c)) && !profile.mods.some((id) => (MODIFIER_BY_ID[id].conflicts || []).includes(m.id)));
+  const target = Math.min(3, A.maxMods + 1);
+  while (profile.mods.length < target && extra.length) profile.mods = [...profile.mods, extra.splice(Math.floor(rng() * extra.length), 1)[0].id];
   const weapon = rngPick(rng, FAMILY_IDS);
   return { n, seed, profile, weapon };
 }

@@ -201,12 +201,12 @@ export class Hazards {
         if (h.t >= h.delay) {
           if (!h.fired) {
             h.fired = true;
-            g.sfx.play(h.kind === 'breath' ? 'flame' : h.kind === 'spikes' ? 'clank' : 'boom');
-            if (h.kind === 'ballista' || h.kind === 'bolt') {
+            g.sfx.play(h.kind === 'breath' ? 'flame' : h.kind === 'spikes' ? 'clank' : h.kind === 'arrow' ? 'bow' : 'boom', 2);
+            if (h.kind === 'ballista' || h.kind === 'bolt' || h.kind === 'arrow' || h.kind === 'slam') {
               for (let z = h.z0; z < h.z1; z += 2) g.particles.emit(h.x, 0.8, z, 1, { colors: [0xffffff, 0xffe27a], speed: 1, up: 0.5, life: 0.35, size: 0.18, gravity: 0 });
               g.addShake(0.2);
             }
-            if (h.hitsEnemies) g.damageLane(h.x, h.w, h.z0, h.z1, (h.dmg || 2) * g.hazardScale(), h.kind);
+            if (h.hitsEnemies) g.damageLane(h.x, h.w, h.z0, h.z1, (h.dmg || 2) * g.hazardScale());
           }
           if (h.kind === 'breath' && Math.random() < 0.8) {
             const z = rand(h.z0, h.z1);
@@ -252,7 +252,7 @@ export class Hazards {
     g.sfx.play(h.kind === 'icicle' ? 'freeze' : 'boom');
     g.addShake(0.18);
     if (h.hitsEnemies) g.damageArea(h.x, h.z, h.r + 0.3, (h.dmg || 2) * g.hazardScale(), { src: 'hazard', burn: h.burn, chill: h.chill });
-    if (Math.abs(px - h.x) < h.r + 0.45 && h.z > -1.1 - h.r * 0.5 && h.z < 1.2 + h.r * 0.5) g.hurt(1, h.kind);
+    if (!h.noHurt && Math.abs(px - h.x) < h.r + 0.45 && h.z > -1.1 - h.r * 0.5 && h.z < 1.2 + h.r * 0.5) g.hurt(1, h.kind);
     if (h.onBlast) h.onBlast(h);
   }
 }

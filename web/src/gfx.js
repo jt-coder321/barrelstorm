@@ -207,6 +207,13 @@ const STYLE = {
   ghost: { body: 0x9a7aff, band: 'ironLight', deco: 'ghost' },
   bomber: { body: 0x2a2a2e, band: 'red', deco: 'bomb' },
   elite: { body: 0x6a1a1a, band: 'gold', deco: 'spikes' },
+  megakeg: { body: 0xd02a1a, band: 'gold', deco: 'megafuse' },
+  archer: { body: 0x4a6a2a, band: 'iron', deco: 'bow' },
+  healer: { body: 0xeae4d4, band: 'green', deco: 'cross' },
+  charger: { body: 0xd8762a, band: 'iron', deco: 'horns' },
+  flyer: { body: 0x7a5a9a, band: 'iron', deco: 'balloon' },
+  pinata: { body: 0xff5aa8, band: 'gold', deco: 'pinata' },
+  cache: { body: null, band: 'gold', deco: 'sparkle' },
 };
 
 export function barrelRadius(kind) {
@@ -214,7 +221,7 @@ export function barrelRadius(kind) {
 }
 
 export function barrelHeight(kind) {
-  const special = { wall: 1.5, chest: 0.9, anvil: 1.3, altar: 1.6, treasure: 1.2 };
+  const special = { wall: 1.5, chest: 0.9, anvil: 1.3, altar: 1.6, treasure: 1.2, ram: 1.0, tower: 3.4 };
   return (special[kind] || 1.1) * (special[kind] ? 1 : ENEMIES[kind].scale || 1);
 }
 
@@ -318,6 +325,62 @@ function decorate(inner, deco, refs) {
       }
       for (const y of [0.4, 0.7]) inner.add(box(1.36, 0.08, 0.08, M.gold, 0, y, 0.55));
       break;
+    case 'megafuse': {
+      for (const sx of [-0.15, 0.15]) inner.add(cyl(0.03, 0.03, 0.35, M.woodDark, sx, 1.27, 0, 5));
+      refs.spark = ball(0.13, M.glow, 0, 1.5, 0);
+      inner.add(refs.spark);
+      const skull = ball(0.24, new THREE.MeshLambertMaterial({ color: 0xffe27a, emissive: 0x553300 }), 0, 0.55, 0.62);
+      skull.scale.set(0.26, 0.26, 0.1);
+      inner.add(skull);
+      for (let i = 0; i < 4; i++) inner.add(box(0.1, 0.1, 0.1, M.glowRed, Math.sin(i * 1.57) * 0.66, 0.85, Math.cos(i * 1.57) * 0.66));
+      break;
+    }
+    case 'bow': {
+      const bow = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.05, 5, 12, Math.PI), M.woodDark);
+      bow.position.set(0, 0.7, 0.68);
+      bow.rotation.z = Math.PI / 2;
+      inner.add(bow);
+      inner.add(box(0.03, 0.9, 0.03, M.steel, 0, 0.7, 0.55));
+      inner.add(box(0.06, 0.06, 0.6, M.steel, 0, 0.7, 0.75));
+      inner.add(cyl(0.45, 0.55, 0.25, M.green, 0, 1.22, 0, 8));
+      for (const sx of [-0.18, 0.18]) inner.add(ball(0.07, M.glowRed, sx, 0.95, 0.63));
+      break;
+    }
+    case 'cross':
+      inner.add(box(0.5, 0.16, 0.08, M.glowGreen, 0, 0.6, 0.67));
+      inner.add(box(0.16, 0.5, 0.08, M.glowGreen, 0, 0.6, 0.67));
+      refs.orb = ball(0.2, M.glowGreen, 0, 1.45, 0);
+      inner.add(refs.orb);
+      break;
+    case 'horns':
+      for (const sx of [-1, 1]) {
+        const h = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.6, 6), M.steel);
+        h.position.set(sx * 0.45, 1.15, 0.2);
+        h.rotation.z = -sx * 0.9;
+        h.rotation.x = 0.5;
+        inner.add(h);
+      }
+      for (const sx of [-0.2, 0.2]) inner.add(ball(0.08, M.glow, sx, 0.75, 0.64));
+      break;
+    case 'balloon': {
+      const bl = ball(0.55, new THREE.MeshLambertMaterial({ color: 0xe8483a, emissive: 0x3a0a08 }), 0, 2.25, 0);
+      bl.scale.set(0.55, 0.65, 0.55);
+      inner.add(bl);
+      for (const sx of [-0.3, 0.3]) inner.add(box(0.02, 0.75, 0.02, M.woodDark, sx, 1.5, 0));
+      inner.add(ball(0.22, M.iron, 0, -0.15, 0));
+      break;
+    }
+    case 'pinata':
+      for (let i = 0; i < 5; i++) inner.add(box(1.4, 0.1, 1.4, [M.gold, M.blue, M.green, M.cloth, M.gold][i], 0, 0.12 + i * 0.22, 0));
+      refs.star = new THREE.Mesh(new THREE.OctahedronGeometry(0.26), new THREE.MeshBasicMaterial({ color: 0xfff2a0 }));
+      refs.star.position.y = 1.55;
+      inner.add(refs.star);
+      break;
+    case 'sparkle':
+      refs.star = new THREE.Mesh(new THREE.OctahedronGeometry(0.12), new THREE.MeshBasicMaterial({ color: 0xfff6c0 }));
+      refs.star.position.set(0.35, 1.3, 0.35);
+      inner.add(refs.star);
+      break;
     case 'mug':
       inner.add(box(0.3, 0.3, 0.05, M.gold, 0, 0.6, 0.66));
       break;
@@ -398,6 +461,37 @@ function specialModel(kind, inner, refs) {
     refs.star.position.y = 1.45;
     refs.star.scale.y = 1.6;
     inner.add(refs.star);
+  } else if (kind === 'ram') {
+    bodyMat = new THREE.MeshLambertMaterial({ map: M.wood.map });
+    const log = cyl(0.42, 0.42, 1.9, bodyMat, 0, 0.6, 0, 10);
+    log.rotation.x = Math.PI / 2;
+    inner.add(log);
+    const head = cyl(0.5, 0.36, 0.5, M.iron, 0, 0.6, 1.05, 10);
+    head.rotation.x = Math.PI / 2;
+    inner.add(head);
+    for (const sx of [-0.5, 0.5]) for (const sz of [-0.6, 0.5]) {
+      const w = cyl(0.25, 0.25, 0.08, M.woodDark, sx, 0.25, sz, 10);
+      w.rotation.z = Math.PI / 2;
+      inner.add(w);
+    }
+    for (const sz of [-0.4, 0.4]) {
+      const b = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.05, 5, 14), M.steel);
+      b.position.set(0, 0.6, sz);
+      inner.add(b);
+    }
+    for (const sx of [-0.15, 0.15]) inner.add(ball(0.07, M.glowRed, sx, 0.75, 1.3));
+  } else if (kind === 'tower') {
+    bodyMat = new THREE.MeshLambertMaterial({ map: M.stone.map });
+    inner.add(cyl(0.55, 0.7, 2.6, bodyMat, 0, 1.3, 0, 10));
+    inner.add(cyl(0.75, 0.75, 0.35, bodyMat, 0, 2.75, 0, 10));
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      inner.add(box(0.22, 0.3, 0.22, bodyMat, Math.cos(a) * 0.62, 3.05, Math.sin(a) * 0.62));
+    }
+    for (let i = 0; i < 3; i++) inner.add(cyl(0.22, 0.22, 0.4, M.red, (i - 1) * 0.3, 3.1, 0, 8));
+    refs.spark = ball(0.12, M.glow, 0, 3.5, 0);
+    inner.add(refs.spark);
+    inner.add(box(0.3, 0.45, 0.05, M.iron, 0, 1.4, 0.62));
   } else if (kind === 'treasure') {
     bodyMat = new THREE.MeshLambertMaterial({ map: M.wood.map });
     inner.add(box(1.2, 0.5, 0.9, bodyMat, 0, 0.5, 0));
@@ -819,6 +913,7 @@ export class ParticleSystem {
         color: c,
         rx: Math.random() * 6,
         ry: Math.random() * 6,
+        st: opts.stave ? 1 : 0,
         spin: rand(-8, 8),
         shrink: opts.shrink ?? true,
       });
@@ -854,7 +949,9 @@ export class ParticleSystem {
       const k = p.shrink ? clamp(p.life / p.max, 0, 1) : 1;
       d.position.set(p.x, p.y, p.z);
       d.rotation.set(p.rx, p.ry + p.rx * 0.5, 0);
-      d.scale.setScalar(p.size * (0.3 + 0.7 * k));
+      const sc = p.size * (0.3 + 0.7 * k);
+      if (p.st) d.scale.set(sc * 0.45, sc * 1.8, sc * 0.18);
+      else d.scale.setScalar(sc);
       d.updateMatrix();
       this.mesh.setMatrixAt(n, d.matrix);
       this.col.setHex(p.color);
@@ -1447,4 +1544,71 @@ export function updateEnvironment(env, dt, speed, t) {
     if (p.flame) p.flame.scale.setScalar((0.85 + Math.sin(t * 14 + p.obj.position.z) * 0.2) * (p.flame.userData.s || 1));
     if (p.gear) p.gear.rotation.z += dt * 0.8;
   }
+}
+
+// ---------- Pickups (power orbs, gold piles, hearts) ----------
+
+export function buildPickup(type, color = 0xffe27a, text = '') {
+  const group = new THREE.Group();
+  const spin = new THREE.Group();
+  group.add(spin);
+  const mats = [];
+  if (type === 'gold') {
+    for (let i = 0; i < 5; i++) {
+      const c = cyl(0.24, 0.24, 0.07, M.gold, rand(-0.25, 0.25), 0.1 + i * 0.07, rand(-0.25, 0.25), 12);
+      spin.add(c);
+    }
+    spin.add(ball(0.16, M.gold, 0, 0.5, 0));
+  } else if (type === 'heart') {
+    const m = new THREE.MeshBasicMaterial({ color: 0xff3a5a });
+    mats.push(m);
+    const a = ball(0.24, m, -0.16, 0.9, 0);
+    const b = ball(0.24, m, 0.16, 0.9, 0);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.5, 4), m);
+    tip.rotation.z = Math.PI;
+    tip.position.y = 0.62;
+    spin.add(a, b, tip);
+  } else {
+    const m = new THREE.MeshBasicMaterial({ color });
+    mats.push(m);
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.42), m);
+    core.position.y = 1.0;
+    spin.add(core);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+    mats.push(ringMat);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.04, 6, 24), ringMat);
+    ring.position.y = 1.0;
+    ring.rotation.x = Math.PI / 2;
+    spin.add(ring);
+  }
+  const glowMat = new THREE.SpriteMaterial({ map: M.glowTex, color, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
+  mats.push(glowMat);
+  const glow = new THREE.Sprite(glowMat);
+  glow.scale.setScalar(type === 'orb' ? 2.6 : 1.6);
+  glow.position.y = type === 'orb' ? 1.0 : 0.5;
+  group.add(glow);
+  // Ground beacon so it reads as "drive here".
+  const beamMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending });
+  mats.push(beamMat);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 4, 12, 1, true), beamMat);
+  beam.position.y = 2;
+  if (type === 'orb') group.add(beam);
+  let label = null;
+  if (text) {
+    label = makeLabel();
+    drawLabel(label, text, '#ffffff');
+    label.sprite.position.set(0, 2.1, 0);
+    label.sprite.scale.set(2.2, 1.1, 1);
+    group.add(label.sprite);
+  }
+  return { group, spin, mats, label };
+}
+
+export function disposePickup(p) {
+  for (const m of p.mats) m.dispose();
+  if (p.label) {
+    p.label.tex.dispose();
+    p.label.sprite.material.dispose();
+  }
+  disposeTree(p.group);
 }

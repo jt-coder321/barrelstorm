@@ -32,7 +32,14 @@ export const RELICS = {
   seal: { id: 'seal', name: "Merchant's Seal", icon: '\u{1F4DC}', desc: '+1 reroll in every draft stage' },
   compass: { id: 'compass', name: 'Fate Compass', icon: '\u{1F9ED}', desc: 'Drafts show rarer cards' },
   drum: { id: 'drum', name: 'War Drum', icon: '\u{1F941}', desc: 'Combos last 1.5s longer' },
+  // Boss trophies: each boss drops its own relic the first time it falls.
+  kingcrown: { id: 'kingcrown', name: "King's Crown", icon: '\u{1F451}', desc: 'Kegs blast 40% wider. Chains pay double coins', boss: 'king' },
+  golemheart: { id: 'golemheart', name: 'Golem Heart', icon: '\u{1FAA8}', desc: '+1 heart and a 1-hit shield at the start', boss: 'golem' },
+  gearcore: { id: 'gearcore', name: 'War Gear', icon: '⚙', desc: 'Special ability charges 50% faster', boss: 'machine' },
+  siegebolt: { id: 'siegebolt', name: 'Siege Bolt', icon: '\u{1F3F9}', desc: 'All shots pierce +1 target', boss: 'siege' },
+  dragonscale: { id: 'dragonscale', name: 'Dragon Scale', icon: '\u{1F409}', desc: 'Shots burn. Power frenzies last 30% longer', boss: 'dragon' },
 };
+export const BOSS_RELIC = { king: 'kingcrown', golem: 'golemheart', machine: 'gearcore', siege: 'siegebolt', dragon: 'dragonscale' };
 export const RELIC_IDS = Object.keys(RELICS);
 
 export const DIFFICULTY = {
@@ -61,6 +68,13 @@ export const ACHIEVEMENTS = [
   { id: 'relics5', name: 'Collector', desc: 'Own 5 relics', stat: 'relicsOwned', goal: 5, reward: 400 },
   { id: 'stage25', name: 'Siege Breaker', desc: 'Clear stage 25', stat: 'cleared', goal: 25, reward: 1000 },
   { id: 'vault', name: 'Secret Keeper', desc: 'Find a secret vault', stat: 'vaults', goal: 1, reward: 200 },
+  { id: 'arch5', name: 'Seasoned', desc: 'Win 5 different encounter types', stat: 'archTypes', goal: 5, reward: 300 },
+  { id: 'arch10', name: 'Master of War', desc: 'Win all 10 encounter types', stat: 'archTypes', goal: 10, reward: 1200 },
+  { id: 'frenzy1', name: 'Overpowered', desc: 'Grab a power frenzy', stat: 'frenzies', goal: 1, reward: 80 },
+  { id: 'frenzy8', name: 'Frenzy Collector', desc: 'Trigger all 8 kinds of power frenzy', stat: 'frenzyTypes', goal: 8, reward: 600 },
+  { id: 'chain20', name: 'Cataclysm', desc: 'Chain 20 explosions in one blast', stat: 'bestChain', goal: 20, reward: 800 },
+  { id: 'tower', name: 'Timber!', desc: 'Topple 10 powder towers', stat: 'towers', goal: 10, reward: 250 },
+  { id: 'relicboss', name: 'Trophy Hunter', desc: 'Collect 3 boss relics', stat: 'bossRelics', goal: 3, reward: 700 },
 ];
 
 export function rankFor(ratio) {

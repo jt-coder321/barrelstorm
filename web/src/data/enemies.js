@@ -24,14 +24,35 @@ export const ENEMIES = {
   chest: { hp: 3.2, speed: 0.85, leak: 0, coins: 6, xp: 2, weight: 0, chest: true },
   anvil: { hp: 2.2, speed: 0.85, leak: 0, coins: 2, xp: 1, weight: 0, anvil: true },
   altar: { hp: 1.6, speed: 0.85, leak: 0, coins: 0, xp: 0, weight: 0, altar: true },
-  wall: { hp: 3.5, speed: 1, leak: 0, coins: 1, xp: 1, weight: 0, wall: true, blocks: true },
+  wall: { hp: 3.5, speed: 1, leak: 0, coins: 1, xp: 1, weight: 0, wall: true, blocks: true, heavy: true },
   minion: { hp: 1, speed: 1.1, leak: 1, coins: 0.3, xp: 0.3, weight: 0, scale: 0.8 },
   bossKeg: { hp: 1, speed: 1, leak: 1, coins: 0.5, xp: 0.5, weight: 0, explode: { r: 3.2, dmg: 1.2 } },
+  // ---- 2.0 roster: enemies with jobs ----
+  // Mega keg: rare, huge blast radius. The heart of big chain reactions.
+  megakeg: { hp: 1.5, speed: 0.95, leak: 1, coins: 2, xp: 1.5, weight: 1, scale: 1.25, explode: { r: 4.6, dmg: 1.4 }, mega: true },
+  // Archer: stops at range and fires down your lane after a clear red warning.
+  archer: { hp: 0.9, speed: 1, leak: 1, coins: 1.8, xp: 1.2, weight: 1, archer: true },
+  // Healer: pulses green and mends everything around it. Priority target.
+  healer: { hp: 1.1, speed: 0.9, leak: 1, coins: 2, xp: 1.3, weight: 1, healer: true },
+  // Charger: hops to the lane next to it, toward you, after flashing.
+  charger: { hp: 0.8, speed: 1.15, leak: 1, coins: 1.5, xp: 1, weight: 1, charger: true, scale: 0.9 },
+  // Battering ram: tough, fast, never leaks into hearts but smashes the cart (and the gate in Siege).
+  ram: { hp: 2.6, speed: 1.3, leak: 0, coins: 2.5, xp: 1.5, weight: 1, ram: true, heavy: true, gate: 3 },
+  // Powder tower: a tall structure. Destroy it and it topples down its lane, crushing everything there.
+  tower: { hp: 3.2, speed: 1, leak: 0, coins: 3, xp: 1.5, weight: 0, tower: true, heavy: true },
+  // Balloon keg: drifts across lanes in the air and drops a bomb on your lane once.
+  flyer: { hp: 0.8, speed: 0.85, leak: 1, coins: 2, xp: 1.2, weight: 1, flyer: true },
+  // Pinata: spills coins every time a fifth of its health is knocked off.
+  pinata: { hp: 3.5, speed: 0.8, leak: 0, coins: 2, xp: 1.5, weight: 0, pinata: true, scale: 1.2 },
+  // Hidden cache: looks almost like a normal barrel but sparkles. Holds a power orb and gold.
+  cache: { hp: 1.3, speed: 1, leak: 0, coins: 4, xp: 1, weight: 0, cache: true },
 };
 
 export const KIND_LABEL = {
   armored: 'Armored', shielder: 'Shield Bearer', regen: 'Regenerating', runner: 'Runner', zigzag: 'Swaying',
   splitter: 'Splitter', ghost: 'Ghost', bomber: 'Bomber', elite: 'Elite', treasure: 'Treasure Cart', keg: 'Powder Keg',
+  megakeg: 'Mega Keg', archer: 'Archer', healer: 'Healer', charger: 'Charger', ram: 'Battering Ram', tower: 'Powder Tower',
+  flyer: 'Balloon Bomber', pinata: 'Pinata', cache: 'Hidden Cache',
 };
 
 export function radiusFor(kind) {

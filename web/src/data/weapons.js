@@ -14,7 +14,7 @@ export const FORM_LEVELS = [1, 6, 13, 22];
 
 export const FAMILIES = {
   cannon: {
-    id: 'cannon', name: 'Cannon', icon: '\u{1F4A3}', color: 0xffa040, accent: 0xff6a2a, blurb: 'Heavy explosive balls',
+    id: 'cannon', name: 'Cannon', icon: '\u{1F4A3}', color: 0xffa040, accent: 0xff6a2a, blurb: 'Heavy blasts that knock barrels back',
     dmg: 5.2, rate: 1.45, speed: 30, spread: 0.42, size: [0.32, 0.32, 0.32], splash: 1.0, splashMul: 0.55,
     forms: [
       { name: 'Bombard' },
@@ -25,7 +25,7 @@ export const FAMILIES = {
     sound: 'cannon',
   },
   gatling: {
-    id: 'gatling', name: 'Gatling', icon: '⚙', color: 0xffe27a, accent: 0xc9a227, blurb: 'Bullet storm, tiny shots',
+    id: 'gatling', name: 'Gatling', icon: '⚙', color: 0xffe27a, accent: 0xc9a227, blurb: 'Spins up: the longer it fires, the faster',
     dmg: 1.15, rate: 7.2, speed: 48, spread: 0.22, jitter: 0.9, size: [0.08, 0.08, 0.45],
     forms: [
       { name: 'Hand Crank' },
@@ -36,7 +36,7 @@ export const FAMILIES = {
     sound: 'gatling',
   },
   crossbow: {
-    id: 'crossbow', name: 'Crossbow', icon: '\u{1F3F9}', color: 0xf1e3b0, accent: 0x8bd3ff, blurb: 'Bolts pierce whole lines',
+    id: 'crossbow', name: 'Crossbow', icon: '\u{1F3F9}', color: 0xf1e3b0, accent: 0x8bd3ff, blurb: 'Pierces lines. Every 4th bolt is a sure crit',
     dmg: 3.1, rate: 2.2, speed: 50, spread: 0.36, size: [0.08, 0.08, 0.9], pierce: 2,
     forms: [
       { name: 'Arbalest' },
@@ -47,7 +47,7 @@ export const FAMILIES = {
     sound: 'bow',
   },
   flame: {
-    id: 'flame', name: 'Flame Launcher', icon: '\u{1F525}', color: 0xff7b2a, accent: 0xffd23a, blurb: 'Burns that spread',
+    id: 'flame', name: 'Flame Launcher', icon: '\u{1F525}', color: 0xff7b2a, accent: 0xffd23a, blurb: 'Short range. Burning barrels spread fire',
     dmg: 0.9, rate: 6.0, speed: 30, spread: 0.3, jitter: 1.4, size: [0.34, 0.34, 0.34], burn: 2.2, life: 0.95,
     forms: [
       { name: 'Fire Pot' },
@@ -69,7 +69,7 @@ export const FAMILIES = {
     sound: 'zap',
   },
   mortar: {
-    id: 'mortar', name: 'Mortar', icon: '\u{1F30B}', color: 0x8b929c, accent: 0xff5a2a, blurb: 'Huge lobbed blasts',
+    id: 'mortar', name: 'Mortar', icon: '\u{1F30B}', color: 0x8b929c, accent: 0xff5a2a, blurb: 'Lobs over walls and shields',
     dmg: 8.5, rate: 0.95, speed: 0, spread: 1.2, size: [0.4, 0.4, 0.4], splash: 2.1, splashMul: 1, lob: 0.62,
     forms: [
       { name: 'Field Mortar' },
@@ -80,7 +80,7 @@ export const FAMILIES = {
     sound: 'mortar',
   },
   frost: {
-    id: 'frost', name: 'Frost Cannon', icon: '❄', color: 0xbff0ff, accent: 0x6ad4ff, blurb: 'Slows, then freezes',
+    id: 'frost', name: 'Frost Cannon', icon: '❄', color: 0xbff0ff, accent: 0x6ad4ff, blurb: 'Freezes, then frozen targets shatter',
     dmg: 2.5, rate: 2.7, speed: 40, spread: 0.36, size: [0.22, 0.22, 0.5], chill: 1,
     forms: [
       { name: 'Rime Tube' },
@@ -91,7 +91,7 @@ export const FAMILIES = {
     sound: 'frost',
   },
   rocket: {
-    id: 'rocket', name: 'Rocket Launcher', icon: '\u{1F680}', color: 0xff5a4a, accent: 0xffe27a, blurb: 'Homing rockets',
+    id: 'rocket', name: 'Rocket Launcher', icon: '\u{1F680}', color: 0xff5a4a, accent: 0xffe27a, blurb: 'Rockets hunt the toughest target',
     dmg: 4.6, rate: 1.35, speed: 26, spread: 0.5, size: [0.14, 0.14, 0.55], splash: 0.8, splashMul: 0.5, homing: 5,
     forms: [
       { name: 'Firework Tube' },

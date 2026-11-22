@@ -185,8 +185,63 @@ export const FORMATIONS = {
       return { slots, depth: 9 };
     },
   },
+  // ---- 2.0 formations ----
+  // Two powder towers flank a crowd. Topple a tower and it crushes its lane.
+  towers: {
+    weight: 3, minStage: 2, tier: 1, tags: ['chain'],
+    make(rng) {
+      const a = rngInt(rng, 0, 1);
+      const b = rngInt(rng, 3, 4);
+      const slots = [{ c: a, dz: 0, kind: 'tower', fixed: true, hp: 0.9 }, { c: b, dz: 0, kind: 'tower', fixed: true, hp: 0.9 }];
+      for (let r = 1; r <= 3; r++) for (const c of [a, b]) slots.push({ c, dz: r * 1.5 + 0.5, hp: 1.1 });
+      slots.push({ c: 2, dz: 2.5, kind: 'keg', fixed: true });
+      return { slots, depth: 5.5 };
+    },
+  },
+  // A ring of barrels around a mega keg: one shot in the right place clears it.
+  megacrowd: {
+    weight: 2, minStage: 2, tier: 1, tags: ['chain'],
+    make(rng) {
+      const cx = rngInt(rng, 1, 3);
+      const slots = [{ c: cx, dz: 1.5, kind: 'megakeg', fixed: true }];
+      for (const dc of [-1, 0, 1]) for (const dz of [0, 3]) slots.push({ c: cx + dc, dz, hp: 1.5 });
+      for (const dc of [-1.2, 1.2]) slots.push({ c: cx + dc, dz: 1.5, hp: 1.5 });
+      return { slots, depth: 3.5 };
+    },
+  },
+  // Archers hang back behind a shield line.
+  archerline: {
+    weight: 3, minStage: 4, tier: 2,
+    make(rng) {
+      const slots = [];
+      const gap = rngInt(rng, 0, 4);
+      for (const c of ALL) if (c !== gap) slots.push({ c, dz: 0, hp: 1.1 });
+      for (const c of [rngInt(rng, 0, 1), rngInt(rng, 3, 4)]) slots.push({ c, dz: 2.5, kind: 'archer', fixed: true });
+      return { slots, depth: 3 };
+    },
+  },
+  // A healer in the middle of a block. Kill it first or the block keeps mending.
+  healercore: {
+    weight: 3, minStage: 6, tier: 2,
+    make(rng) {
+      const cx = rngInt(rng, 1, 3);
+      const slots = [{ c: cx, dz: 1.4, kind: 'healer', fixed: true }];
+      for (const dc of [-1, 0, 1]) slots.push({ c: cx + dc, dz: 0, hp: 1.3 });
+      for (const dc of [-1, 1]) slots.push({ c: cx + dc, dz: 1.4, hp: 1.3 }, { c: cx + dc, dz: 2.8 });
+      return { slots, depth: 3.4 };
+    },
+  },
+  // A ram behind a line of runners.
+  ramcharge: {
+    weight: 2, minStage: 5, tier: 2,
+    make(rng) {
+      const c = rngInt(rng, 0, 4);
+      const slots = [{ c, dz: 2.5, kind: 'ram', fixed: true, hp: 0.9 }];
+      for (const dc of [-1, 1]) if (c + dc >= 0 && c + dc <= 4) slots.push({ c: c + dc, dz: 0, kind: 'runner', fixed: true });
+      return { slots, depth: 4 };
+    },
+  },
 };
-
 export const FORMATION_IDS = Object.keys(FORMATIONS);
 
 export function pickFormation(rng, ctx, recent, tierMax) {
